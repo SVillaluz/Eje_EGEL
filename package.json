@@ -5,16 +5,20 @@
   "description": "EGEL App con MongoDB",
   "scripts": {
     "dev": "node server.js",
+    "dev-auth": "node server-auth.js",
     "client": "cd EGEL && npm run dev",
     "build": "cd EGEL && npm run build",
     "start": "node server.js",
-    "test-connection": "node test-connection.js"
+    "test-connection": "node test-connection.js",
+    "create-admin": "node create-admin.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongodb": "^6.0.0",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^6.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
