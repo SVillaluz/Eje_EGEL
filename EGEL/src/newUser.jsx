@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import NewUser from './newUser.jsx'
 
-function App() {
-  const [showNewUser, setShowNewUser] = useState(false)
+function NewUser({ onBack }) {
   const [count, setCount] = useState(0)
   const [datos, setDatos] = useState([])
   const [inputValue, setInputValue] = useState('')
@@ -55,17 +53,13 @@ function App() {
     }
   }
 
-  if (showNewUser) {
-    return <NewUser onBack={() => setShowNewUser(false)} />
-  }
-
   return (
     <div className="center">
-      <h1>Inicio de sesión</h1>
+      <h1>Nuevo usuario</h1>
 
-      <label htmlFor="email">Ingrese su correo</label>
+      <label htmlFor="dato">Ingrese su correo</label>
       <input
-        id="email"
+        id="dato"
         type="email"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
@@ -73,9 +67,19 @@ function App() {
         placeholder="Escribe tu correo..."
       />
 
-      <label htmlFor="password">Ingrese su contraseña</label>
+      <label htmlFor="dato">Ingrese su contraseña</label>
       <input
-        id="password"
+        id="dato"
+        type="password"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && agregarDato()}
+        placeholder="Escribe tu contraseña..."
+      />
+
+      <label htmlFor="dato">Confirme su contraseña</label>
+      <input
+        id="dato"
         type="password"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
@@ -85,15 +89,15 @@ function App() {
 
       <div className="actions">
         <button type="button" className="btn" onClick={agregarDato}>
-          Iniciar sesión
+          Registrarse
         </button>
       </div>
 
-      <p className="link-text" onClick={() => setShowNewUser(true)}>
-        Registrarse
+      <p className="link-text" onClick={onBack}>
+        Volver al inicio
       </p>
     </div>
   )
 }
 
-export default App
+export default NewUser
