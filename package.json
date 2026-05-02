@@ -1,0 +1,22 @@
+{
+  "name": "egel-app",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "EGEL App con MongoDB",
+  "scripts": {
+    "dev": "node server.js",
+    "client": "cd EGEL && npm run dev",
+    "build": "cd EGEL && npm run build",
+    "start": "node server.js",
+    "test-connection": "node test-connection.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
