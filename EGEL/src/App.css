@@ -98,7 +98,9 @@ input {
   cursor: pointer;
   font-size: 18px;
   padding: 12px 0;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .btn:hover {
@@ -150,7 +152,9 @@ input {
   background: transparent;
   border: 2px solid #000;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .counter:hover {

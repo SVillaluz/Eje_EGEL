@@ -42,13 +42,18 @@ function NewUser({ onBack }) {
       <h1>Registro</h1>
 
       <label>Username</label>
-      <input value={username} onChange={(e) => setUsername(e.target.value)} />
+      <input
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Escribe tu nombre de usuario..."
+      />
 
       <label>Correo</label>
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        placeholder="Escribe tu correo..."
       />
 
       <label>Contraseña</label>
@@ -56,6 +61,7 @@ function NewUser({ onBack }) {
         type="password"
         value={pass1}
         onChange={(e) => setPass1(e.target.value)}
+        placeholder="Escribe tu contraseña..."
       />
 
       <label>Confirmar contraseña</label>
@@ -63,6 +69,7 @@ function NewUser({ onBack }) {
         type="password"
         value={pass2}
         onChange={(e) => setPass2(e.target.value)}
+        placeholder="Confirma tu contraseña..."
       />
 
       <div className="actions">

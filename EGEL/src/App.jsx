@@ -53,6 +53,7 @@ function App() {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        placeholder="Escribe tu correo..."
       />
 
       <label>Contraseña</label>
@@ -60,6 +61,7 @@ function App() {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        placeholder="Escribe tu contraseña..."
       />
 
       <div className="actions">
