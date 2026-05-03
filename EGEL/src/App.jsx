@@ -1,90 +1,69 @@
-import { useState, useEffect } from 'react'
-import './App.css'
-import NewUser from './newUser.jsx'
+import { useState } from "react";
+import "./App.css";
+import NewUser from "./newUser";
+import Questions from "./questions";
 
 function App() {
-  const [showNewUser, setShowNewUser] = useState(false)
-  const [count, setCount] = useState(0)
-  const [datos, setDatos] = useState([])
-  const [inputValue, setInputValue] = useState('')
-  const [estado, setEstado] = useState('Conectando...')
+  const [showNewUser, setShowNewUser] = useState(false);
+  const [logged, setLogged] = useState(false);
 
-  const API_URL = 'http://localhost:5000/api'
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  // Verificar conexión al servidor
-  useEffect(() => {
-    const verificarConexion = async () => {
-      try {
-        const response = await fetch(`${API_URL}/health`)
-        const data = await response.json()
-        setEstado(data.status)
-      } catch (error) {
-        setEstado('❌ No se pudo conectar al servidor')
+  const API_URL = "http://localhost:5000/api";
+
+  const login = async () => {
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.user.id);
+        setLogged(true);
+      } else {
+        alert(data.error);
       }
-    }
-
-    verificarConexion()
-  }, [])
-
-  // Obtener datos de MongoDB
-  const obtenerDatos = async () => {
-    try {
-      const response = await fetch(`${API_URL}/datos`)
-      const data = await response.json()
-      setDatos(data)
     } catch (error) {
-      console.error('Error:', error)
+      alert("Error al iniciar sesión");
     }
-  }
-
-  // Agregar nuevo dato
-  const agregarDato = async () => {
-    if (!inputValue.trim()) return
-
-    try {
-      const response = await fetch(`${API_URL}/datos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: inputValue, fecha: new Date() })
-      })
-      const data = await response.json()
-      setDatos([...datos, data])
-      setInputValue('')
-    } catch (error) {
-      console.error('Error:', error)
-    }
-  }
+  };
 
   if (showNewUser) {
-    return <NewUser onBack={() => setShowNewUser(false)} />
+    return <NewUser onBack={() => setShowNewUser(false)} />;
+  }
+
+  if (logged) {
+    return <Questions />;
   }
 
   return (
     <div className="center">
       <h1>Inicio de sesión</h1>
 
-      <label htmlFor="email">Ingrese su correo</label>
+      <label>Correo</label>
       <input
-        id="email"
         type="email"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && agregarDato()}
-        placeholder="Escribe tu correo..."
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
-      <label htmlFor="password">Ingrese su contraseña</label>
+      <label>Contraseña</label>
       <input
-        id="password"
         type="password"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && agregarDato()}
-        placeholder="Escribe tu contraseña..."
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
 
       <div className="actions">
-        <button type="button" className="btn" onClick={agregarDato}>
+        <button className="btn" onClick={login}>
           Iniciar sesión
         </button>
       </div>
@@ -93,7 +72,7 @@ function App() {
         Registrarse
       </p>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,0 +1,139 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Times New Roman", serif;
+  background: #f4f4f4;
+  color: #111;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+#center {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.center {
+  width: min(95%, 850px);
+  background: white;
+  border-radius: 18px;
+  padding: 40px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.08);
+}
+
+.exam-box h1 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.exam-box p {
+  text-align: center;
+  font-size: 18px;
+}
+
+.progress {
+  width: 100%;
+  height: 12px;
+  background: #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 20px 0 30px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #111;
+  transition: 0.3s;
+}
+
+.question-card {
+  padding: 25px;
+  border: 2px solid #eee;
+  border-radius: 14px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #111;
+  color: white;
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+
+.question-card h3 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin-bottom: 28px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.option-btn {
+  padding: 18px;
+  border: 2px solid #111;
+  background: white;
+  cursor: pointer;
+  border-radius: 12px;
+  font-size: 18px;
+  text-align: left;
+  transition: 0.2s;
+}
+
+.option-btn:hover {
+  background: #111;
+  color: white;
+}
+
+.option-btn.selected {
+  background: #111;
+  color: white;
+}
+
+.actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.btn {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  background: #111;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn:disabled {
+  background: #888;
+  cursor: not-allowed;
+}
+
+.result-box {
+  text-align: center;
+  padding: 25px;
+  border: 2px solid #111;
+  border-radius: 15px;
+  margin: 20px 0;
+}
+
+.result-box p {
+  font-size: 24px;
+}

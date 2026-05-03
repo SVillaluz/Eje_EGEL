@@ -1,103 +1,81 @@
-import { useState, useEffect } from 'react'
-import './App.css'
+import { useState } from "react";
+import "./App.css";
 
 function NewUser({ onBack }) {
-  const [count, setCount] = useState(0)
-  const [datos, setDatos] = useState([])
-  const [inputValue, setInputValue] = useState('')
-  const [estado, setEstado] = useState('Conectando...')
+  const API_URL = "http://localhost:5000/api";
 
-  const API_URL = 'http://localhost:5000/api'
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [pass1, setPass1] = useState("");
+  const [pass2, setPass2] = useState("");
 
-  // Verificar conexión al servidor
-  useEffect(() => {
-    const verificarConexion = async () => {
-      try {
-        const response = await fetch(`${API_URL}/health`)
-        const data = await response.json()
-        setEstado(data.status)
-      } catch (error) {
-        setEstado('❌ No se pudo conectar al servidor')
-      }
+  const register = async () => {
+    if (pass1 !== pass2) {
+      alert("Las contraseñas no coinciden");
+      return;
     }
 
-    verificarConexion()
-  }, [])
+    const res = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        email,
+        password: pass1,
+      }),
+    });
 
-  // Obtener datos de MongoDB
-  const obtenerDatos = async () => {
-    try {
-      const response = await fetch(`${API_URL}/datos`)
-      const data = await response.json()
-      setDatos(data)
-    } catch (error) {
-      console.error('Error:', error)
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Usuario creado");
+      onBack();
+    } else {
+      alert(data.error);
     }
-  }
-
-  // Agregar nuevo dato
-  const agregarDato = async () => {
-    if (!inputValue.trim()) return
-
-    try {
-      const response = await fetch(`${API_URL}/datos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: inputValue, fecha: new Date() })
-      })
-      const data = await response.json()
-      setDatos([...datos, data])
-      setInputValue('')
-    } catch (error) {
-      console.error('Error:', error)
-    }
-  }
+  };
 
   return (
     <div className="center">
-      <h1>Nuevo usuario</h1>
+      <h1>Registro</h1>
 
-      <label htmlFor="dato">Ingrese su correo</label>
+      <label>Username</label>
+      <input value={username} onChange={(e) => setUsername(e.target.value)} />
+
+      <label>Correo</label>
       <input
-        id="dato"
         type="email"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && agregarDato()}
-        placeholder="Escribe tu correo..."
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
-      <label htmlFor="dato">Ingrese su contraseña</label>
+      <label>Contraseña</label>
       <input
-        id="dato"
         type="password"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && agregarDato()}
-        placeholder="Escribe tu contraseña..."
+        value={pass1}
+        onChange={(e) => setPass1(e.target.value)}
       />
 
-      <label htmlFor="dato">Confirme su contraseña</label>
+      <label>Confirmar contraseña</label>
       <input
-        id="dato"
         type="password"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && agregarDato()}
-        placeholder="Escribe tu contraseña..."
+        value={pass2}
+        onChange={(e) => setPass2(e.target.value)}
       />
 
       <div className="actions">
-        <button type="button" className="btn" onClick={agregarDato}>
+        <button className="btn" onClick={register}>
           Registrarse
         </button>
       </div>
 
       <p className="link-text" onClick={onBack}>
-        Volver al inicio
+        Volver
       </p>
     </div>
-  )
+  );
 }
 
-export default NewUser
+export default NewUser;
