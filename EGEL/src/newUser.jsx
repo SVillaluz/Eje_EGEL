@@ -1,4 +1,5 @@
 import { useState } from "react";
+import validator from "validator";
 import "./App.css";
 
 function NewUser({ onBack }) {
@@ -12,6 +13,21 @@ function NewUser({ onBack }) {
   const register = async () => {
     if (pass1 !== pass2) {
       alert("Las contraseñas no coinciden");
+      return;
+    }
+
+    const isValid = validator.isStrongPassword(pass1, {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    });
+
+    if (!isValid) {
+      alert(
+        "La contraseña debe tener al menos 8 caracteres, una letra mayúscula, una letra minúscula, un número y un símbolo"
+      );
       return;
     }
 
@@ -45,7 +61,7 @@ function NewUser({ onBack }) {
       <input
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        placeholder="Escribe tu nombre de usuario..."
+        placeholder="Escribe tu nombre completo..."
       />
 
       <label>Correo</label>

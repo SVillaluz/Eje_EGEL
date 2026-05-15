@@ -21,7 +21,8 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3",
-    "mongodb": "^6.0.0"
+    "mongodb": "^6.0.0",
+    "validator": "^13.15.35"
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",
