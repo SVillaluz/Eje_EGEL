@@ -37,6 +37,12 @@ function App() {
   };
 
   const siguiente = () => {
+    // Validar que se haya seleccionado una opción
+    if (!respuestas[preguntaActual._id]) {
+      alert("Seleccione una opción para poder continuar con el resto de preguntas");
+      return;
+    }
+
     if (indiceActual < preguntas.length - 1) {
       setIndiceActual(indiceActual + 1);
     } else {
