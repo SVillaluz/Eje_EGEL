@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "description": "EGEL App con MongoDB",
+  "homepage": "/Eje_EGEL/",
   "scripts": {
     "dev": "node server.js",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d EGEL/dist",
     "dev-auth": "node server-auth.js",
     "client": "cd EGEL && npm run dev",
     "build": "cd EGEL && npm run build",
@@ -21,6 +24,7 @@
     "mongodb": "^6.0.0"
   },
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "nodemon": "^3.0.1"
   }
 }
