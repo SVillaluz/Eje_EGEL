@@ -208,6 +208,51 @@ app.get("/api/preguntas/random", async (req, res) => {
   }
 });
 
+app.get("/api/preguntas/by-subarea/:subarea", async (req, res) => {
+  try {
+    const { subarea } = req.params;
+    const size = Math.min(Math.max(parseInt(req.query.size, 10) || 5, 1), 20);
+    const excludeIds = (req.query.excludeIds || "")
+      .split(",")
+      .filter(Boolean);
+
+    const match = { subarea };
+    if (excludeIds.length > 0) {
+      match._id = {
+        $nin: excludeIds
+          .map((id) => {
+            try {
+              return new ObjectId(id);
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean),
+      };
+    }
+
+    const preguntas = await db
+      .collection("preguntas")
+      .aggregate([
+        {
+          $match: match,
+        },
+        {
+          $sample: {
+            size,
+          },
+        },
+      ])
+      .toArray();
+
+    res.json(preguntas);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
 // GUARDAR RESPUESTAS DEL EXAMEN
 app.post("/api/respuestas", async (req, res) => {
   try {
