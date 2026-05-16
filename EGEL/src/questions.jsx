@@ -7,13 +7,9 @@ function App() {
   const [preguntas, setPreguntas] = useState([]);
   const [indiceActual, setIndiceActual] = useState(0);
   const [respuestas, setRespuestas] = useState({});
-  const [temaStats, setTemaStats] = useState({});
   const [cargando, setCargando] = useState(true);
   const [finalizado, setFinalizado] = useState(false);
   const [resultado, setResultado] = useState(null);
-  const [feedback, setFeedback] = useState("");
-  const [mensajeTema, setMensajeTema] = useState("");
-  const [justificaciones, setJustificaciones] = useState([]);
 
   useEffect(() => {
     cargarPreguntas();
@@ -31,188 +27,27 @@ function App() {
     }
   };
 
-  const cargarPreguntasExtraPorTema = async (tema) => {
-    try {
-      const excludeIds = preguntas.map((p) => p._id).join(",");
-      const res = await fetch(
-        `${API_URL}/preguntas/by-subarea/${encodeURIComponent(
-          tema,
-        )}?size=5&excludeIds=${excludeIds}`,
-      );
-
-      if (!res.ok) {
-        return [];
-      }
-
-      const data = await res.json();
-      return data;
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
-  };
-
   const preguntaActual = preguntas[indiceActual];
 
-  const responder = async (opcion) => {
-    if (!preguntaActual) return;
+  const responder = (opcion, index) => {
+    const correctaIndex = Number.isNaN(Number(preguntaActual.correcta))
+      ? preguntaActual.opciones.findIndex((item) => item === preguntaActual.correcta)
+      : Number(preguntaActual.correcta);
 
-    const respuestaAnterior = respuestas[preguntaActual._id];
-    if (respuestaAnterior === opcion) {
-      return;
-    }
+    const esCorrecta = index === correctaIndex;
 
-    const nuevaRespuesta = {
+    setRespuestas({
       ...respuestas,
-      [preguntaActual._id]: opcion,
-    };
-
-    setRespuestas(nuevaRespuesta);
-
-    const esCorrecta = opcion === preguntaActual.correcta;
-    setFeedback(esCorrecta ? "Respuesta correcta." : "Respuesta incorrecta.");
-
-    if (!respuestaAnterior) {
-      const { updatedPreguntas } = await procesarRespuestaActual(opcion, preguntaActual);
-
-      const ultimaPregunta = indiceActual === updatedPreguntas.length - 1;
-      const todasContestadas = Object.keys(nuevaRespuesta).length === updatedPreguntas.length;
-
-      if (ultimaPregunta && todasContestadas) {
-        terminarExamen(updatedPreguntas);
-      }
-    }
-  };
-
-  const procesarRespuestaActual = async (seleccion, pregunta, respuestasActuales) => {
-    if (!pregunta) {
-      return { updatedPreguntas: preguntas };
-    }
-
-    if (!seleccion) {
-      return { updatedPreguntas: preguntas };
-    }
-
-    const esCorrecta = seleccion === pregunta.correcta;
-    const tema = pregunta.subarea;
-
-    const prevStats = temaStats[tema] || {
-      totalFirstStage: 0,
-      correctFirstStage: 0,
-      extraRequested: false,
-      extraFetched: false,
-      extraStageTotal: 0,
-      extraStageCorrect: 0,
-      completed: false,
-      showJustifications: false,
-    };
-
-    const stats = { ...prevStats };
-
-    if (!prevStats.extraRequested) {
-      stats.totalFirstStage += 1;
-      if (esCorrecta) {
-        stats.correctFirstStage += 1;
-      }
-
-      if (stats.totalFirstStage === 3) {
-        if (stats.correctFirstStage >= 3) {
-          stats.completed = true;
-        } else {
-          stats.extraRequested = true;
-        }
-      }
-    } else if (!prevStats.completed) {
-      stats.extraStageTotal += 1;
-      if (esCorrecta) {
-        stats.extraStageCorrect += 1;
-      }
-
-      if (stats.extraStageTotal === 3) {
-        if (stats.extraStageCorrect >= 3) {
-          stats.completed = true;
-        } else {
-          stats.showJustifications = true;
-        }
-      }
-    }
-
-    setTemaStats((prev) => ({
-      ...prev,
-      [tema]: stats,
-    }));
-
-    if (
-      !esCorrecta &&
-      (stats.showJustifications || (stats.extraStageTotal === 3 && stats.extraStageCorrect < 3))
-    ) {
-      const justificacion =
-        pregunta.justificacion ||
-        pregunta.explicacion ||
-        "Consulta la explicación oficial de este tema.";
-
-      setJustificaciones((prev) => {
-        if (prev.some((item) => item.id === pregunta._id)) {
-          return prev;
-        }
-
-        return [
-          ...prev,
-          {
-            id: pregunta._id,
-            pregunta: pregunta.pregunta,
-            justificacion,
-          },
-        ];
-      });
-    }
-
-    if (stats.completed && !prevStats.completed) {
-      setMensajeTema(
-        `¡Excelente! Ya no recibirás más preguntas del tema "${tema}".`,
-      );
-
-      const filtered = preguntas.filter((_, index) => {
-        return index <= indiceActual || preguntas[index].subarea !== tema;
-      });
-
-      setPreguntas(filtered);
-      return { updatedPreguntas: filtered };
-    }
-
-    if (stats.extraRequested && !prevStats.extraFetched && stats.totalFirstStage === 3) {
-      setMensajeTema(
-        `No alcanzaste 3 correctas en "${tema}". Se agregaron 5 preguntas adicionales de refuerzo.`,
-      );
-
-      const extraPreguntas = await cargarPreguntasExtraPorTema(tema);
-      const existingIds = new Set(preguntas.map((p) => p._id));
-      const nuevas = extraPreguntas.filter((p) => !existingIds.has(p._id));
-
-      setTemaStats((prev) => ({
-        ...prev,
-        [tema]: { ...stats, extraFetched: true },
-      }));
-
-      if (nuevas.length > 0) {
-        const updatedPreguntas = [...preguntas, ...nuevas];
-        setPreguntas(updatedPreguntas);
-        return { updatedPreguntas };
-      }
-    }
-
-    if (stats.showJustifications && !prevStats.showJustifications) {
-      setMensajeTema(
-        `Aún necesitas refuerzo en "${tema}". Revisa las justificaciones de las preguntas incorrectas.`,
-      );
-    }
-
-    return { updatedPreguntas: preguntas };
+      [preguntaActual._id]: {
+        opcion,
+        index,
+        correcta: esCorrecta,
+      },
+    });
   };
 
   const siguiente = () => {
-    if (!preguntaActual) return;
-
+    // Validar que se haya seleccionado una opción
     if (!respuestas[preguntaActual._id]) {
       alert("Seleccione una opción para poder continuar con el resto de preguntas");
       return;
@@ -221,30 +56,29 @@ function App() {
     if (indiceActual < preguntas.length - 1) {
       setIndiceActual(indiceActual + 1);
     } else {
-      terminarExamen(preguntas);
+      terminarExamen();
     }
   };
 
   const anterior = () => {
     if (indiceActual > 0) {
       setIndiceActual(indiceActual - 1);
-      setFeedback("");
     }
   };
 
-  const terminarExamen = (listaPreguntas = preguntas) => {
+  const terminarExamen = () => {
     let aciertos = 0;
 
-    listaPreguntas.forEach((p) => {
-      if (respuestas[p._id] === p.correcta) {
+    preguntas.forEach((p) => {
+      if (respuestas[p._id]?.correcta) {
         aciertos++;
       }
     });
 
     setResultado({
-      total: listaPreguntas.length,
+      total: preguntas.length,
       aciertos,
-      porcentaje: ((aciertos / listaPreguntas.length) * 100).toFixed(0),
+      porcentaje: ((aciertos / preguntas.length) * 100).toFixed(0),
     });
 
     setFinalizado(true);
@@ -261,17 +95,6 @@ function App() {
     );
   }
 
-  if (!preguntaActual) {
-    return (
-      <section id="center">
-        <div className="center">
-          <h1>Simulador EGEL</h1>
-          <p>No hay preguntas disponibles en este momento.</p>
-        </div>
-      </section>
-    );
-  }
-
   if (finalizado) {
     return (
       <section id="center">
@@ -279,9 +102,9 @@ function App() {
           <h1>Resultado Final</h1>
 
           <div className="result-box">
-            <p>Aciertos: {resultado?.aciertos ?? 0}</p>
-            <p>Total: {resultado?.total ?? 0}</p>
-            <p>Porcentaje: {resultado?.porcentaje ?? 0}%</p>
+            <p>Aciertos: {resultado.aciertos}</p>
+            <p>Total de preguntas: {resultado.total}</p>
+            <p>Porcentaje: {resultado.porcentaje}%</p>
           </div>
 
           <button className="btn" onClick={() => window.location.reload()}>
@@ -318,35 +141,22 @@ function App() {
           <h3>{preguntaActual.pregunta}</h3>
 
           <div className="options">
-            {preguntaActual.opciones.map((opcion, i) => (
-              <button
-                key={i}
-                className={`option-btn ${
-                  respuestas[preguntaActual._id] === opcion ? "selected" : ""
-                }`}
-                onClick={() => responder(opcion)}
-              >
-                {opcion}
-              </button>
-            ))}
-          </div>
+            {preguntaActual.opciones.map((opcion, i) => {
+              const seleccion = respuestas[preguntaActual._id];
+              const esSeleccionado = seleccion?.index === i;
 
-          {feedback && <p className="feedback">{feedback}</p>}
+              return (
+                <button
+                  key={i}
+                  className={`option-btn ${esSeleccionado ? "selected" : ""}`}
+                  onClick={() => responder(opcion, i)}
+                >
+                  {opcion}
+                </button>
+              );
+            })}
+          </div>
         </div>
-
-        {mensajeTema && <div className="topic-message">{mensajeTema}</div>}
-
-        {justificaciones.length > 0 && (
-          <div className="justification-box">
-            <h3>Justificaciones</h3>
-            {justificaciones.map((item) => (
-              <div key={item.id} className="justification-item">
-                <p className="question-title">{item.pregunta}</p>
-                <p>{item.justificacion}</p>
-              </div>
-            ))}
-          </div>
-        )}
 
         <div className="actions">
           <button

@@ -173,34 +173,23 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// OBTENER 2 PREGUNTAS POR SUBÁREA
+// OBTENER PREGUNTAS ALEATORIAS
 app.get("/api/preguntas/random", async (req, res) => {
   try {
-    const subareas = await db.collection("preguntas").distinct("subarea");
+    const size = Math.min(Math.max(parseInt(req.query.size, 10) || 60, 1), 100);
 
-    let resultado = [];
-
-    for (const sub of subareas) {
-      const preguntas = await db
-        .collection("preguntas")
-        .aggregate([
-          {
-            $match: {
-              subarea: sub,
-            },
+    const preguntas = await db
+      .collection("preguntas")
+      .aggregate([
+        {
+          $sample: {
+            size,
           },
-          {
-            $sample: {
-              size: 2,
-            },
-          },
-        ])
-        .toArray();
+        },
+      ])
+      .toArray();
 
-      resultado.push(...preguntas);
-    }
-
-    res.json(resultado);
+    res.json(preguntas);
   } catch (error) {
     res.status(500).json({
       error: error.message,
