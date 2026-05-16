@@ -7,6 +7,8 @@ function App() {
   const [preguntas, setPreguntas] = useState([]);
   const [indiceActual, setIndiceActual] = useState(0);
   const [respuestas, setRespuestas] = useState({});
+  const [feedback, setFeedback] = useState("");
+  const [justificaciones, setJustificaciones] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [finalizado, setFinalizado] = useState(false);
   const [resultado, setResultado] = useState(null);
@@ -29,12 +31,19 @@ function App() {
 
   const preguntaActual = preguntas[indiceActual];
 
+  useEffect(() => {
+    setFeedback("");
+  }, [indiceActual]);
+
   const responder = (opcion, index) => {
     const correctaIndex = Number.isNaN(Number(preguntaActual.correcta))
       ? preguntaActual.opciones.findIndex((item) => item === preguntaActual.correcta)
       : Number(preguntaActual.correcta);
 
     const esCorrecta = index === correctaIndex;
+    const justificacionTexto = !esCorrecta
+      ? preguntaActual.justificacion || preguntaActual.explicacion || "Respuesta incorrecta. Revisa la explicación."
+      : "";
 
     setRespuestas({
       ...respuestas,
@@ -44,6 +53,16 @@ function App() {
         correcta: esCorrecta,
       },
     });
+
+    if (!esCorrecta) {
+      setJustificaciones((prev) => {
+        if (prev.some((j) => j.id === preguntaActual._id)) return prev;
+        return [
+          ...prev,
+          { id: preguntaActual._id, subarea: preguntaActual.subarea, justificacion: justificacionTexto },
+        ];
+      });
+    }
   };
 
   const siguiente = () => {
@@ -107,6 +126,18 @@ function App() {
             <p>Porcentaje: {resultado.porcentaje}%</p>
           </div>
 
+          {justificaciones.length > 0 && (
+            <div className="justifications-box">
+              <h3>Justificaciones</h3>
+              {justificaciones.map((j) => (
+                <div key={j.id} className="justification-item">
+                  <p className="subarea">{j.subarea}</p>
+                  <p>{j.justificacion}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
           <button className="btn" onClick={() => window.location.reload()}>
             Nuevo intento
           </button>
@@ -156,6 +187,11 @@ function App() {
               );
             })}
           </div>
+            {feedback && (
+              <div className={`feedback ${feedback.includes("correcta") ? "correct" : "incorrect"}`}>
+                <p>{feedback}</p>
+              </div>
+            )}
         </div>
 
         <div className="actions">
