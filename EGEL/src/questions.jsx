@@ -103,6 +103,16 @@ function App() {
     setFinalizado(true);
   };
 
+  const reiniciarExamen = () => {
+    setIndiceActual(0);
+    setRespuestas({});
+    setJustificaciones([]);
+    setFeedback("");
+    setResultado(null);
+    setFinalizado(false);
+    cargarPreguntas();
+  };
+
   if (cargando) {
     return (
       <section id="center">
@@ -138,9 +148,15 @@ function App() {
             </div>
           )}
 
-          <button className="btn" onClick={() => window.location.reload()}>
-            Nuevo intento
-          </button>
+          <div className="actions">
+            <button className="btn" onClick={reiniciarExamen}>
+              Nuevo intento
+            </button>
+
+            <button className="btn" onClick={() => window.location.reload()}>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </section>
     );
