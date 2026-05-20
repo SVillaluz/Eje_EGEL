@@ -242,21 +242,91 @@ app.get("/api/preguntas/by-subarea/:subarea", async (req, res) => {
   }
 });
 
+app.get("/api/progreso/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const lastResult = await db
+      .collection("resultados")
+      .find({ userId: new ObjectId(userId) })
+      .sort({ fecha: -1 })
+      .limit(1)
+      .toArray();
+
+    if (lastResult.length === 0) {
+      return res.json({ hasProgress: false });
+    }
+
+    const result = lastResult[0];
+    const totalCorrectAfterRound = Number.isFinite(result.totalCorrectAfterRound)
+      ? result.totalCorrectAfterRound
+      : result.totalCorrectSoFar + (result.allCorrect ? result.correctCount : 0);
+
+    const resumeBlockNumber = result.allCorrect ? result.roundNumber + 1 : result.roundNumber;
+    const resumeAttempt = result.allCorrect ? 1 : result.attemptNumber + 1;
+    const completed = totalCorrectAfterRound >= 60;
+
+    res.json({
+      hasProgress: true,
+      completed,
+      totalCorrectAfterRound,
+      resumeBlockNumber,
+      resumeAttempt,
+      lastRoundInfo: {
+        roundNumber: result.roundNumber,
+        attemptNumber: result.attemptNumber,
+        allCorrect: result.allCorrect,
+        correctCount: result.correctCount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
 // GUARDAR RESPUESTAS DEL EXAMEN
 app.post("/api/respuestas", async (req, res) => {
   try {
-    const { userId, respuestas, puntaje } = req.body;
+    const {
+      userId,
+      respuestas,
+      puntaje,
+      roundNumber,
+      attemptNumber,
+      allCorrect,
+      correctCount,
+      totalCorrectSoFar,
+      totalCorrectAfterRound,
+    } = req.body;
 
-    if (!userId || !respuestas) {
+    if (
+      !userId ||
+      !respuestas ||
+      roundNumber == null ||
+      attemptNumber == null ||
+      typeof allCorrect !== "boolean" ||
+      correctCount == null ||
+      totalCorrectSoFar == null
+    ) {
       return res.status(400).json({
-        error: "Datos incompletos",
+        error: "Datos incompletos para guardar la ronda",
       });
     }
 
     const nuevoResultado = {
       userId: new ObjectId(userId),
+      roundNumber,
+      attemptNumber,
+      allCorrect,
+      correctCount,
+      puntaje: Number.isFinite(Number(puntaje)) ? Number(puntaje) : correctCount,
+      totalCorrectSoFar,
+      totalCorrectAfterRound:
+        Number.isFinite(Number(totalCorrectAfterRound)) && Number(totalCorrectAfterRound) >= 0
+          ? Number(totalCorrectAfterRound)
+          : totalCorrectSoFar,
       respuestas,
-      puntaje: puntaje || 0,
       fecha: new Date(),
     };
 
