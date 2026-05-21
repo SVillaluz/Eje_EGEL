@@ -25,11 +25,11 @@ if (FRONTEND_ORIGIN) {
         }
         return callback(new Error("CORS policy: origin not allowed"));
       },
-    })
+    }),
   );
 } else {
   console.warn(
-    "⚠️ FRONTEND_ORIGIN no definido — CORS permitiendo todos los orígenes. Establece FRONTEND_ORIGIN en producción."
+    "⚠️ FRONTEND_ORIGIN no definido — CORS permitiendo todos los orígenes. Establece FRONTEND_ORIGIN en producción.",
   );
   app.use(cors());
 }
@@ -197,7 +197,7 @@ app.post("/api/login", async (req, res) => {
 // OBTENER PREGUNTAS ALEATORIAS
 app.get("/api/preguntas/random", async (req, res) => {
   try {
-    const size = Math.min(Math.max(parseInt(req.query.size, 10) || 60, 1), 100);
+    const size = Math.min(Math.max(parseInt(req.query.size, 10) || 12, 1), 100);
 
     const preguntas = await db
       .collection("preguntas")
@@ -222,9 +222,7 @@ app.get("/api/preguntas/by-subarea/:subarea", async (req, res) => {
   try {
     const { subarea } = req.params;
     const size = Math.min(Math.max(parseInt(req.query.size, 10) || 5, 1), 20);
-    const excludeIds = (req.query.excludeIds || "")
-      .split(",")
-      .filter(Boolean);
+    const excludeIds = (req.query.excludeIds || "").split(",").filter(Boolean);
 
     const match = { subarea };
     if (excludeIds.length > 0) {

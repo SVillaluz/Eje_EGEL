@@ -3,6 +3,7 @@ import "./questions.css";
 
 function App() {
   const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+  const NUM_PREGUNTAS = 12;
 
   const [preguntas, setPreguntas] = useState([]);
   const [indiceActual, setIndiceActual] = useState(0);
@@ -19,7 +20,9 @@ function App() {
 
   const cargarPreguntas = async () => {
     try {
-      const res = await fetch(`${API_URL}/preguntas/random`);
+      const res = await fetch(
+        `${API_URL}/preguntas/random?size=${NUM_PREGUNTAS}`,
+      );
       const data = await res.json();
       setPreguntas(data);
     } catch (error) {
@@ -37,12 +40,16 @@ function App() {
 
   const responder = (opcion, index) => {
     const correctaIndex = Number.isNaN(Number(preguntaActual.correcta))
-      ? preguntaActual.opciones.findIndex((item) => item === preguntaActual.correcta)
+      ? preguntaActual.opciones.findIndex(
+          (item) => item === preguntaActual.correcta,
+        )
       : Number(preguntaActual.correcta);
 
     const esCorrecta = index === correctaIndex;
     const justificacionTexto = !esCorrecta
-      ? preguntaActual.justificacion || preguntaActual.explicacion || "Respuesta incorrecta. Revisa la explicación."
+      ? preguntaActual.justificacion ||
+        preguntaActual.explicacion ||
+        "Respuesta incorrecta. Revisa la explicación."
       : "";
 
     setRespuestas({
@@ -59,7 +66,11 @@ function App() {
         if (prev.some((j) => j.id === preguntaActual._id)) return prev;
         return [
           ...prev,
-          { id: preguntaActual._id, subarea: preguntaActual.subarea, justificacion: justificacionTexto },
+          {
+            id: preguntaActual._id,
+            subarea: preguntaActual.subarea,
+            justificacion: justificacionTexto,
+          },
         ];
       });
     }
@@ -68,7 +79,9 @@ function App() {
   const siguiente = () => {
     // Validar que se haya seleccionado una opción
     if (!respuestas[preguntaActual._id]) {
-      alert("Seleccione una opción para poder continuar con el resto de preguntas");
+      alert(
+        "Seleccione una opción para poder continuar con el resto de preguntas",
+      );
       return;
     }
 
@@ -203,11 +216,13 @@ function App() {
               );
             })}
           </div>
-            {feedback && (
-              <div className={`feedback ${feedback.includes("correcta") ? "correct" : "incorrect"}`}>
-                <p>{feedback}</p>
-              </div>
-            )}
+          {feedback && (
+            <div
+              className={`feedback ${feedback.includes("correcta") ? "correct" : "incorrect"}`}
+            >
+              <p>{feedback}</p>
+            </div>
+          )}
         </div>
 
         <div className="actions">
