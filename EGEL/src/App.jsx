@@ -10,7 +10,7 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
   const login = async () => {
     try {

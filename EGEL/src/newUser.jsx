@@ -3,7 +3,7 @@ import validator from "validator";
 import "./App.css";
 
 function NewUser({ onBack }) {
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");

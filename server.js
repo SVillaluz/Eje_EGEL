@@ -11,7 +11,28 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // MIDDLEWARE
-app.use(cors());
+// Configurar CORS según FRONTEND_ORIGIN (puede ser una lista separada por comas)
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
+if (FRONTEND_ORIGIN) {
+  const allowed = FRONTEND_ORIGIN.split(",").map((s) => s.trim());
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // permitir requests sin origin (herramientas, mobile apps)
+        if (!origin) return callback(null, true);
+        if (allowed.indexOf("*") !== -1 || allowed.indexOf(origin) !== -1) {
+          return callback(null, true);
+        }
+        return callback(new Error("CORS policy: origin not allowed"));
+      },
+    })
+  );
+} else {
+  console.warn(
+    "⚠️ FRONTEND_ORIGIN no definido — CORS permitiendo todos los orígenes. Establece FRONTEND_ORIGIN en producción."
+  );
+  app.use(cors());
+}
 app.use(express.json());
 
 // CONFIGURACIÓN

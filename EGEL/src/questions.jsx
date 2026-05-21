@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import "./questions.css";
 
 function App() {
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
   const [preguntas, setPreguntas] = useState([]);
   const [indiceActual, setIndiceActual] = useState(0);
