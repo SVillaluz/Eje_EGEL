@@ -20,13 +20,30 @@ function App() {
 
   const cargarPreguntas = async () => {
     try {
+      setCargando(true);
+
       const res = await fetch(
         `${API_URL}/preguntas/random?size=${NUM_PREGUNTAS}`,
       );
+
       const data = await res.json();
-      setPreguntas(data);
+
+      console.log("Preguntas recibidas:", data);
+
+      // Validar si la API devuelve un arreglo directamente
+      if (Array.isArray(data)) {
+        setPreguntas(data);
+      }
+      // Validar si la API devuelve { preguntas: [...] }
+      else if (Array.isArray(data.preguntas)) {
+        setPreguntas(data.preguntas);
+      } else {
+        console.error("Formato de preguntas inválido");
+        setPreguntas([]);
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error cargando preguntas:", error);
+      setPreguntas([]);
     } finally {
       setCargando(false);
     }
@@ -46,24 +63,28 @@ function App() {
       : Number(preguntaActual.correcta);
 
     const esCorrecta = index === correctaIndex;
+
     const justificacionTexto = !esCorrecta
       ? preguntaActual.justificacion ||
         preguntaActual.explicacion ||
         "Respuesta incorrecta. Revisa la explicación."
       : "";
 
-    setRespuestas({
-      ...respuestas,
+    setRespuestas((prev) => ({
+      ...prev,
       [preguntaActual._id]: {
         opcion,
         index,
         correcta: esCorrecta,
       },
-    });
+    }));
 
     if (!esCorrecta) {
       setJustificaciones((prev) => {
-        if (prev.some((j) => j.id === preguntaActual._id)) return prev;
+        if (prev.some((j) => j.id === preguntaActual._id)) {
+          return prev;
+        }
+
         return [
           ...prev,
           {
@@ -77,7 +98,6 @@ function App() {
   };
 
   const siguiente = () => {
-    // Validar que se haya seleccionado una opción
     if (!respuestas[preguntaActual._id]) {
       alert(
         "Seleccione una opción para poder continuar con el resto de preguntas",
@@ -86,7 +106,7 @@ function App() {
     }
 
     if (indiceActual < preguntas.length - 1) {
-      setIndiceActual(indiceActual + 1);
+      setIndiceActual((prev) => prev + 1);
     } else {
       terminarExamen();
     }
@@ -94,7 +114,7 @@ function App() {
 
   const anterior = () => {
     if (indiceActual > 0) {
-      setIndiceActual(indiceActual - 1);
+      setIndiceActual((prev) => prev - 1);
     }
   };
 
@@ -126,6 +146,7 @@ function App() {
     cargarPreguntas();
   };
 
+  // Pantalla de carga
   if (cargando) {
     return (
       <section id="center">
@@ -137,6 +158,23 @@ function App() {
     );
   }
 
+  // Validar si no hay preguntas
+  if (!preguntas.length || !preguntaActual) {
+    return (
+      <section id="center">
+        <div className="center">
+          <h1>Simulador EGEL</h1>
+          <p>No se pudieron cargar preguntas.</p>
+
+          <button className="btn" onClick={cargarPreguntas}>
+            Reintentar
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  // Pantalla final
   if (finalizado) {
     return (
       <section id="center">
@@ -152,6 +190,7 @@ function App() {
           {justificaciones.length > 0 && (
             <div className="justifications-box">
               <h3>Justificaciones</h3>
+
               {justificaciones.map((j) => (
                 <div key={j.id} className="justification-item">
                   <p className="subarea">{j.subarea}</p>
@@ -175,6 +214,7 @@ function App() {
     );
   }
 
+  // Examen
   return (
     <section id="center">
       <div className="center exam-box">
@@ -216,9 +256,12 @@ function App() {
               );
             })}
           </div>
+
           {feedback && (
             <div
-              className={`feedback ${feedback.includes("correcta") ? "correct" : "incorrect"}`}
+              className={`feedback ${
+                feedback.includes("correcta") ? "correct" : "incorrect"
+              }`}
             >
               <p>{feedback}</p>
             </div>
