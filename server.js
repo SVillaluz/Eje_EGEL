@@ -39,6 +39,38 @@ app.use(express.json());
 const MONGODB_URI = process.env.MONGODB_URI;
 const SECRET = process.env.JWT_SECRET || "secreto_egel";
 
+const verificarAdmin = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        error: "Token requerido",
+      });
+    }
+
+    const decoded = jwt.verify(token, SECRET);
+
+    const usuario = await db.collection("users").findOne({
+      _id: new ObjectId(decoded.id),
+    });
+
+    if (!usuario || usuario.role !== "admin") {
+      return res.status(403).json({
+        error: "Acceso denegado",
+      });
+    }
+
+    req.user = usuario;
+
+    next();
+  } catch (error) {
+    res.status(401).json({
+      error: "Token inválido",
+    });
+  }
+};
+
 let db;
 
 // CONEXIÓN A MONGO
@@ -112,6 +144,7 @@ app.post("/api/register", async (req, res) => {
       username,
       email: email.toLowerCase(),
       password: hash,
+      role: "user",
       createdAt: new Date(),
     };
 
@@ -185,6 +218,7 @@ app.post("/api/login", async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -194,23 +228,39 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// OBTENER PREGUNTAS ALEATORIAS
+// OBTENER PREGUNTAS POR BLOQUES
 app.get("/api/preguntas/random", async (req, res) => {
   try {
-    const size = Math.min(Math.max(parseInt(req.query.size, 10) || 12, 1), 100);
+    const BLOQUES = 6;
+    const PREGUNTAS_POR_BLOQUE = 10;
 
     const preguntas = await db
       .collection("preguntas")
       .aggregate([
         {
           $sample: {
-            size,
+            size: BLOQUES * PREGUNTAS_POR_BLOQUE,
           },
         },
       ])
       .toArray();
 
-    res.json(preguntas);
+    // Crear bloques de 10
+    const bloques = [];
+
+    for (let i = 0; i < BLOQUES; i++) {
+      const inicio = i * PREGUNTAS_POR_BLOQUE;
+      const fin = inicio + PREGUNTAS_POR_BLOQUE;
+
+      bloques.push({
+        bloque: i + 1,
+        preguntas: preguntas.slice(inicio, fin),
+      });
+    }
+
+    res.json({
+      bloques,
+    });
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -292,7 +342,7 @@ app.post("/api/respuestas", async (req, res) => {
 });
 
 // VER RESULTADOS DE UN USUARIO
-app.get("/api/resultados/:userId", async (req, res) => {
+app.get("/api/resultados/:userId", verificarAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -305,6 +355,127 @@ app.get("/api/resultados/:userId", async (req, res) => {
       .toArray();
 
     res.json(resultados);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
+app.post("/api/resultados/evaluacion", async (req, res) => {
+  try {
+    const { userId, bloques, respuestas, resultadoFinal, tiempoTotal } =
+      req.body;
+
+    console.log("BODY RECIBIDO:", req.body);
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "userId requerido",
+      });
+    }
+
+    if (!bloques || !respuestas || !resultadoFinal) {
+      return res.status(400).json({
+        error: "Datos incompletos",
+      });
+    }
+
+    const bloquesResultado = bloques.map((bloque) => {
+      let aciertos = 0;
+
+      const preguntas = bloque.preguntas.map((p) => {
+        const respuesta = respuestas[p._id];
+
+        if (respuesta?.correcta) {
+          aciertos++;
+        }
+
+        return {
+          preguntaId: p._id,
+          correcta: respuesta?.correcta || false,
+          respuestaUsuario: respuesta?.index ?? null,
+        };
+      });
+
+      return {
+        bloque: bloque.bloque,
+        aciertos,
+        total: bloque.preguntas.length,
+        porcentaje: ((aciertos / bloque.preguntas.length) * 100).toFixed(0),
+
+        preguntas,
+      };
+    });
+
+    const evaluacion = {
+      userId: new ObjectId(userId),
+
+      fecha: new Date(),
+
+      tiempoTotal,
+
+      resultadoFinal,
+
+      bloques: bloquesResultado,
+    };
+
+    const result = await db.collection("evaluaciones").insertOne(evaluacion);
+
+    console.log("Guardado:", result);
+
+    res.json({
+      ok: true,
+      message: "Evaluación guardada",
+    });
+  } catch (error) {
+    console.error("ERROR EVALUACION:", error);
+
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
+app.get("/api/admin/evaluaciones", verificarAdmin, async (req, res) => {
+  try {
+    const evaluaciones = await db
+      .collection("evaluaciones")
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "usuario",
+          },
+        },
+
+        {
+          $unwind: "$usuario",
+        },
+
+        {
+          $project: {
+            _id: 1,
+            fecha: 1,
+            resultadoFinal: 1,
+            bloques: 1,
+            tiempoTotal: 1,
+            username: "$usuario.username",
+            email: "$usuario.email",
+          },
+        },
+
+        {
+          $sort: {
+            fecha: -1,
+          },
+        },
+      ])
+      .toArray();
+
+    res.json(evaluaciones);
   } catch (error) {
     res.status(500).json({
       error: error.message,

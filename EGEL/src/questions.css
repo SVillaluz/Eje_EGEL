@@ -16,10 +16,14 @@ body {
 }
 
 .center {
-  width: min(95%, 850px);
+  width: min(95%, 960px);
   border-radius: 18px;
   padding: 40px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.08);
+}
+
+.center.exam-box {
+  width: min(95%, 960px);
 }
 
 .exam-box h1 {
