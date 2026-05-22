@@ -33,6 +33,13 @@ function App() {
 
   const [tiempoTotal, setTiempoTotal] = useState(0);
 
+  const [errorValidacion, setErrorValidacion] = useState("");
+
+  const [mostrarFeedbackRespuesta, setMostrarFeedbackRespuesta] = useState(false);
+
+  const [respuestaEsCorrecta, setRespuestaEsCorrecta] = useState(null);
+
+
   useEffect(() => {
     cargarPreguntas();
   }, []);
@@ -71,6 +78,9 @@ function App() {
 
   useEffect(() => {
     setFeedback("");
+    setErrorValidacion("");
+    setMostrarFeedbackRespuesta(false);
+    setRespuestaEsCorrecta(null);
   }, [indiceActual]);
 
   // CRONÓMETRO
@@ -103,16 +113,16 @@ function App() {
   const responder = (opcion, index) => {
     const correctaIndex = Number.isNaN(Number(preguntaActual.correcta))
       ? preguntaActual.opciones.findIndex(
-          (item) => item === preguntaActual.correcta,
-        )
+        (item) => item === preguntaActual.correcta,
+      )
       : Number(preguntaActual.correcta);
 
     const esCorrecta = index === correctaIndex;
 
     const justificacionTexto = !esCorrecta
       ? preguntaActual.justificacion ||
-        preguntaActual.explicacion ||
-        "Respuesta incorrecta. Revisa la explicación."
+      preguntaActual.explicacion ||
+      "Respuesta incorrecta. Revisa la explicación."
       : "";
 
     setRespuestas((prev) => ({
@@ -161,12 +171,24 @@ function App() {
 
   const siguiente = () => {
     if (!respuestas[preguntaActual._id]) {
-      alert(
+      setErrorValidacion(
         "Seleccione una opción para poder continuar con el resto de preguntas",
       );
 
       return;
     }
+    // Si no se muestra el feedback aún, mostrarlo
+    if (!mostrarFeedbackRespuesta) {
+      setErrorValidacion("");
+      const esCorrecta = respuestas[preguntaActual._id].correcta;
+      setRespuestaEsCorrecta(esCorrecta);
+      setMostrarFeedbackRespuesta(true);
+      return;
+    }
+
+    // Si ya se muestra el feedback, avanzar a la siguiente pregunta
+    setMostrarFeedbackRespuesta(false);
+    setRespuestaEsCorrecta(null);
 
     // SIGUIENTE PREGUNTA DEL BLOQUE
     if (indiceActual < preguntas.length - 1) {
@@ -452,6 +474,12 @@ function App() {
 
           <h3>{preguntaActual.pregunta}</h3>
 
+          {errorValidacion && (
+            <div className="validation-error">
+              <p>{errorValidacion}</p>
+            </div>
+          )}
+
           <div className="options">
             {preguntaActual.opciones.map((opcion, i) => {
               const seleccion = respuestas[preguntaActual._id];
@@ -463,6 +491,7 @@ function App() {
                   key={i}
                   className={`option-btn ${esSeleccionado ? "selected" : ""}`}
                   onClick={() => responder(opcion, i)}
+                  disabled={mostrarFeedbackRespuesta}
                 >
                   {opcion}
                 </button>
@@ -472,11 +501,34 @@ function App() {
 
           {feedback && (
             <div
-              className={`feedback ${
-                feedback.includes("correcta") ? "correct" : "incorrect"
-              }`}
+              className={`feedback ${feedback.includes("correcta") ? "correct" : "incorrect"
+                }`}
             >
               <p>{feedback}</p>
+            </div>
+          )}
+          {mostrarFeedbackRespuesta && (
+            <div
+              className={`respuesta-feedback ${respuestaEsCorrecta ? "correcta" : "incorrecta"
+                }`}
+            >
+              <p>
+                {respuestaEsCorrecta ? "¡Respuesta Correcta!" : "¡Respuesta Incorrecta!"}
+              </p>
+              <p className="respuesta-seleccionada">
+                Tu respuesta: {respuestas[preguntaActual._id]?.opcion}
+              </p>
+              {!respuestaEsCorrecta && (
+                <p className="respuesta-correcta">
+                  Respuesta correcta: {preguntaActual.opciones[
+                    Number.isNaN(Number(preguntaActual.correcta))
+                      ? preguntaActual.opciones.findIndex(
+                        (item) => item === preguntaActual.correcta,
+                      )
+                      : Number(preguntaActual.correcta)
+                  ]}
+                </p>
+              )}
             </div>
           )}
         </div>
