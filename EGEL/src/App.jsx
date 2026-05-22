@@ -101,9 +101,11 @@ function App() {
         <p>Selecciona una opción</p>
 
         <div className="actions">
-          <button className="btn" onClick={() => setStartExam(true)}>
-            Iniciar examen
-          </button>
+          {user?.role !== "admin" && (
+            <button className="btn" onClick={() => setStartExam(true)}>
+              Iniciar examen
+            </button>
+          )}
 
           {user?.role === "admin" && (
             <button className="btn" onClick={() => setShowAdminPanel(true)}>

@@ -11,6 +11,7 @@
 ## 🎯 Pasos para Probar
 
 ### 1. Iniciar el Servidor Backend
+
 ```bash
 # En la raíz del proyecto
 npm run dev
@@ -21,6 +22,7 @@ npm run dev-auth  # Si está usando autenticación
 El servidor debe correr en `http://localhost:5000`
 
 ### 2. Iniciar el Cliente React/Vite
+
 ```bash
 # En otra terminal
 cd EGEL
@@ -68,6 +70,7 @@ El cliente debe abrir en `http://localhost:5173` (o similar)
 ## 👨‍💼 Pruebas del Panel Administrador
 
 ### Preparación
+
 1. Crea varios usuarios de prueba
 2. Que cada uno responda el examen con diferentes porcentajes
 3. Esto generará datos para mostrar en el admin
@@ -136,16 +139,19 @@ El cliente debe abrir en `http://localhost:5173` (o similar)
 Prueba en diferentes tamaños:
 
 **Desktop (>1024px):**
+
 - [ ] Sidebar a la izquierda
 - [ ] Grid de 4 columnas para stats
 - [ ] Tabla con scroll horizontal completa
 
 **Tablet (768px-1024px):**
+
 - [ ] Sidebar se convierte en menú horizontal superior
 - [ ] Grid de 2 columnas
 - [ ] Tabla todavía visible
 
 **Mobile (<768px):**
+
 - [ ] Menú horizontal superior colapsable
 - [ ] Grid de 1 columna
 - [ ] Tabla scrollable horizontalmente
@@ -170,6 +176,7 @@ Prueba en diferentes tamaños:
 ### Si el componente Results no aparece:
 
 1. Verifica que `Questions.jsx` importe `Results`:
+
    ```javascript
    import Results from "./Results";
    ```
@@ -196,8 +203,8 @@ db.users.insertOne({
   username: "admin",
   email: "admin@test.com",
   password: "hashedpassword",
-  role: "admin"
-})
+  role: "admin",
+});
 
 db.evaluaciones.insertMany([
   {
@@ -205,18 +212,16 @@ db.evaluaciones.insertMany([
     username: "Juan López",
     email: "juan@test.com",
     resultadoFinal: { aciertos: 38, total: 40, porcentaje: 95 },
-    tiempoTotal: 2847,
-    fecha: new Date()
+    fecha: new Date(),
   },
   {
     userId: "userId2",
     username: "María García",
     email: "maria@test.com",
     resultadoFinal: { aciertos: 28, total: 40, porcentaje: 70 },
-    tiempoTotal: 3200,
-    fecha: new Date()
-  }
-])
+    fecha: new Date(),
+  },
+]);
 ```
 
 ---
@@ -270,10 +275,11 @@ Si algo no funciona:
    - `src/questions.jsx` (actualizado)
 
 4. Si necesitas ver los cambios:
+
    ```bash
    # Terminal en EGEL/
    npm run dev
-   
+
    # Y en otra terminal en raíz
    npm run dev
    ```

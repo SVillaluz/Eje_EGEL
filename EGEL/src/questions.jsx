@@ -4,78 +4,75 @@ import "./questions.css";
 function App() {
   const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
-  // FUNCIONES UTILITARIAS PARA ONTOLOGÍA Y ALEATORIZACIÓN
+  // =========================
+  // ALEATORIZAR OPCIONES
+  // =========================
+  const aleatorizarOpciones = (pregunta) => {
+    const opcionesOriginales = [...pregunta.opciones];
 
-  /**
-   * Aleatoriza las opciones de una pregunta manteniendo referencia a la respuesta correcta
-   */
-  const aleatorrizarOpciones = (pregunta) => {
-    const opciones = [...pregunta.opciones];
-    
-    // Encontrar el índice de la respuesta correcta
-    let correctaIndex = Number.isNaN(Number(pregunta.correcta))
-      ? opciones.findIndex((item) => item === pregunta.correcta)
-      : Number(pregunta.correcta);
+    const respuestaCorrectaTexto = Number.isNaN(Number(pregunta.correcta))
+      ? pregunta.correcta
+      : opcionesOriginales[Number(pregunta.correcta)];
 
-    // Crear array de índices y barajarlo
-    const indices = Array.from({ length: opciones.length }, (_, i) => i);
-    
-    // Fisher-Yates shuffle
-    for (let i = indices.length - 1; i > 0; i--) {
+    const opcionesMezcladas = [...opcionesOriginales];
+
+    // Fisher-Yates
+    for (let i = opcionesMezcladas.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
+
+      [opcionesMezcladas[i], opcionesMezcladas[j]] = [
+        opcionesMezcladas[j],
+        opcionesMezcladas[i],
+      ];
     }
 
-    // Crear nuevas opciones en orden aleatorio
-    const opcionesAleatorias = indices.map((i) => opciones[i]);
-    
-    // Encontrar la nueva posición de la respuesta correcta
-    const nuevaCorrectaIndex = indices.indexOf(correctaIndex);
+    const nuevaCorrectaIndex = opcionesMezcladas.findIndex(
+      (op) => op === respuestaCorrectaTexto,
+    );
 
     return {
       ...pregunta,
-      opciones: opcionesAleatorias,
+      opciones: opcionesMezcladas,
       correcta: nuevaCorrectaIndex,
+      respuestaCorrectaTexto,
     };
   };
 
-  /**
-   * Ordena las preguntas basado en ontología educativa
-   * Criterios: dificultad, nivel cognitivo, y distribución de temas
-   */
+  // =========================
+  // ORDEN ONTOLÓGICO
+  // =========================
   const ordenarPreguntasOntologia = (preguntas) => {
-    // Mapeo de niveles a prioridad (menor = primero)
     const nivelPrioridad = {
-      "Básico": 1,
-      "Intermedio": 2,
-      "Avanzado": 3,
-      "Experto": 4,
+      Básico: 1,
+      Intermedio: 2,
+      Avanzado: 3,
+      Experto: 4,
     };
 
-    // Crear copia y asignar nivel por defecto si no existe
     const preguntasConNivel = preguntas.map((p) => ({
       ...p,
       nivelOrden: nivelPrioridad[p.nivel] || 2,
     }));
 
-    // Agrupar por subareas
     const porSubarea = {};
+
     preguntasConNivel.forEach((p) => {
       if (!porSubarea[p.subarea]) {
         porSubarea[p.subarea] = [];
       }
+
       porSubarea[p.subarea].push(p);
     });
 
-    // Ordenar cada subaarea por nivel de dificultad
     Object.keys(porSubarea).forEach((subarea) => {
       porSubarea[subarea].sort((a, b) => a.nivelOrden - b.nivelOrden);
     });
 
-    // Intercalar las subareas para distribuir temas
     const resultado = [];
+
     const subareas = Object.keys(porSubarea);
-    let maxPreguntas = Math.max(...subareas.map((s) => porSubarea[s].length));
+
+    const maxPreguntas = Math.max(...subareas.map((s) => porSubarea[s].length));
 
     for (let i = 0; i < maxPreguntas; i++) {
       for (const subarea of subareas) {
@@ -88,25 +85,28 @@ function App() {
     return resultado;
   };
 
-  /**
-   * Procesa un bloque: ordena preguntas y aleatoriza opciones
-   */
+  // =========================
+  // PROCESAR BLOQUE
+  // =========================
   const procesarBloque = (bloque) => {
     const preguntasOrdenadas = ordenarPreguntasOntologia(bloque.preguntas);
-    const preguntasConOpcionesAleatorias = preguntasOrdenadas.map(
-      (pregunta) => aleatorrizarOpciones(pregunta)
+
+    const preguntasAleatorias = preguntasOrdenadas.map((pregunta) =>
+      aleatorizarOpciones(pregunta),
     );
 
     return {
       ...bloque,
-      preguntas: preguntasConOpcionesAleatorias,
+      preguntas: preguntasAleatorias,
     };
   };
 
+  // =========================
+  // ESTADOS
+  // =========================
   const [bloques, setBloques] = useState([]);
-  const [bloqueActual, setBloqueActual] = useState(0);
 
-  const [mostrarRetroBloque, setMostrarRetroBloque] = useState(false);
+  const [bloqueActual, setBloqueActual] = useState(0);
 
   const [preguntas, setPreguntas] = useState([]);
 
@@ -114,15 +114,9 @@ function App() {
 
   const [respuestas, setRespuestas] = useState({});
 
-  // TODAS LAS JUSTIFICACIONES
-  const [justificaciones, setJustificaciones] = useState([]);
-
-  // SOLO JUSTIFICACIONES DEL BLOQUE ACTUAL
-  const [justificacionesBloque, setJustificacionesBloque] = useState([]);
-
-  const [feedback, setFeedback] = useState("");
-
   const [cargando, setCargando] = useState(true);
+
+  const [mostrarRetroBloque, setMostrarRetroBloque] = useState(false);
 
   const [finalizado, setFinalizado] = useState(false);
 
@@ -130,15 +124,18 @@ function App() {
 
   const [tiempo, setTiempo] = useState(60);
 
-  const [tiempoTotal, setTiempoTotal] = useState(0);
-
   const [errorValidacion, setErrorValidacion] = useState("");
 
-  const [mostrarFeedbackRespuesta, setMostrarFeedbackRespuesta] = useState(false);
+  const [mostrarFeedbackRespuesta, setMostrarFeedbackRespuesta] =
+    useState(false);
 
   const [respuestaEsCorrecta, setRespuestaEsCorrecta] = useState(null);
 
+  const [justificaciones, setJustificaciones] = useState([]);
 
+  // =========================
+  // CARGAR PREGUNTAS
+  // =========================
   useEffect(() => {
     cargarPreguntas();
   }, []);
@@ -154,9 +151,8 @@ function App() {
       console.log("Preguntas recibidas:", data);
 
       if (Array.isArray(data.bloques)) {
-        // Procesar cada bloque: ordenar preguntas y aleatorizar opciones
         const bloquesProcesados = data.bloques.map((bloque) =>
-          procesarBloque(bloque)
+          procesarBloque(bloque),
         );
 
         setBloques(bloquesProcesados);
@@ -165,12 +161,10 @@ function App() {
 
         setBloqueActual(0);
       } else {
-        console.error("Formato inválido");
-
         setPreguntas([]);
       }
     } catch (error) {
-      console.error("Error cargando preguntas:", error);
+      console.error(error);
 
       setPreguntas([]);
     } finally {
@@ -180,20 +174,41 @@ function App() {
 
   const preguntaActual = preguntas[indiceActual];
 
+  // =========================
+  // LIMPIAR FEEDBACK
+  // =========================
   useEffect(() => {
-    setFeedback("");
     setErrorValidacion("");
+
     setMostrarFeedbackRespuesta(false);
+
     setRespuestaEsCorrecta(null);
   }, [indiceActual]);
 
-  // CRONÓMETRO
+  // =========================
+  // TEMPORIZADOR
+  // =========================
   useEffect(() => {
     if (finalizado || cargando || mostrarRetroBloque || !preguntas.length) {
       return;
     }
 
+    const timer = setTimeout(() => {
+      setTiempo((prev) => prev - 1);
+    }, 1000);
+
     if (tiempo <= 0) {
+      if (!respuestas[preguntaActual._id]) {
+        setRespuestas((prev) => ({
+          ...prev,
+          [preguntaActual._id]: {
+            opcion: null,
+            index: null,
+            correcta: false,
+          },
+        }));
+      }
+
       if (indiceActual < preguntas.length - 1) {
         setIndiceActual((prev) => prev + 1);
 
@@ -201,29 +216,25 @@ function App() {
       } else {
         setMostrarRetroBloque(true);
       }
-
-      return;
     }
 
-    const timer = setTimeout(() => {
-      setTiempo((prev) => prev - 1);
-
-      setTiempoTotal((prev) => prev + 1);
-    }, 1000);
-
     return () => clearTimeout(timer);
-  }, [tiempo, finalizado, cargando, indiceActual, mostrarRetroBloque]);
+  }, [
+    tiempo,
+    finalizado,
+    cargando,
+    mostrarRetroBloque,
+    preguntas,
+    indiceActual,
+    respuestas,
+    preguntaActual,
+  ]);
 
+  // =========================
+  // RESPONDER
+  // =========================
   const responder = (opcion, index) => {
-    const correctaIndex = Number(preguntaActual.correcta);
-
-    const esCorrecta = index === correctaIndex;
-
-    const justificacionTexto = !esCorrecta
-      ? preguntaActual.justificacion ||
-      preguntaActual.explicacion ||
-      "Respuesta incorrecta. Revisa la explicación."
-      : "";
+    const esCorrecta = opcion === preguntaActual.respuestaCorrectaTexto;
 
     setRespuestas((prev) => ({
       ...prev,
@@ -233,64 +244,32 @@ function App() {
         correcta: esCorrecta,
       },
     }));
-
-    if (!esCorrecta) {
-      // JUSTIFICACIONES DEL BLOQUE
-      setJustificacionesBloque((prev) => {
-        if (prev.some((j) => j.id === preguntaActual._id)) {
-          return prev;
-        }
-
-        return [
-          ...prev,
-          {
-            id: preguntaActual._id,
-            subarea: preguntaActual.subarea,
-            justificacion: justificacionTexto,
-          },
-        ];
-      });
-
-      // JUSTIFICACIONES GENERALES
-      setJustificaciones((prev) => {
-        if (prev.some((j) => j.id === preguntaActual._id)) {
-          return prev;
-        }
-
-        return [
-          ...prev,
-          {
-            id: preguntaActual._id,
-            subarea: preguntaActual.subarea,
-            justificacion: justificacionTexto,
-          },
-        ];
-      });
-    }
   };
 
+  // =========================
+  // SIGUIENTE
+  // =========================
   const siguiente = () => {
     if (!respuestas[preguntaActual._id]) {
-      setErrorValidacion(
-        "Seleccione una opción para poder continuar con el resto de preguntas",
-      );
+      setErrorValidacion("Seleccione una opción para continuar");
 
       return;
     }
-    // Si no se muestra el feedback aún, mostrarlo
+
     if (!mostrarFeedbackRespuesta) {
-      setErrorValidacion("");
       const esCorrecta = respuestas[preguntaActual._id].correcta;
+
       setRespuestaEsCorrecta(esCorrecta);
+
       setMostrarFeedbackRespuesta(true);
+
       return;
     }
 
-    // Si ya se muestra el feedback, avanzar a la siguiente pregunta
     setMostrarFeedbackRespuesta(false);
+
     setRespuestaEsCorrecta(null);
 
-    // SIGUIENTE PREGUNTA DEL BLOQUE
     if (indiceActual < preguntas.length - 1) {
       setIndiceActual((prev) => prev + 1);
 
@@ -299,12 +278,13 @@ function App() {
       return;
     }
 
-    // TERMINAR BLOQUE
     setMostrarRetroBloque(true);
   };
 
+  // =========================
+  // SIGUIENTE BLOQUE
+  // =========================
   const siguienteBloque = () => {
-    // ÚLTIMO BLOQUE
     if (bloqueActual >= bloques.length - 1) {
       terminarExamen();
 
@@ -321,41 +301,52 @@ function App() {
 
     setTiempo(60);
 
-    // LIMPIAR JUSTIFICACIONES DEL BLOQUE
-    setJustificacionesBloque([]);
-
     setMostrarRetroBloque(false);
   };
 
+  // =========================
+  // TERMINAR EXAMEN
+  // =========================
   const terminarExamen = async () => {
     let aciertos = 0;
 
-    Object.values(respuestas).forEach((r) => {
-      if (r.correcta) {
-        aciertos++;
-      }
+    const justificacionesErrores = [];
+
+    bloques.forEach((bloque) => {
+      bloque.preguntas.forEach((pregunta) => {
+        const respuesta = respuestas[pregunta._id];
+
+        if (respuesta?.correcta) {
+          aciertos++;
+        } else {
+          justificacionesErrores.push({
+            id: pregunta._id,
+            subarea: pregunta.subarea,
+            justificacion:
+              pregunta.justificacion ||
+              pregunta.explicacion ||
+              "Respuesta incorrecta",
+          });
+        }
+      });
     });
 
-    const totalPreguntas = bloques.length * 10;
-
     const resultadoFinal = {
-      total: totalPreguntas,
+      total: 60,
       aciertos,
-      porcentaje: ((aciertos / totalPreguntas) * 100).toFixed(0),
+      porcentaje: ((aciertos / 60) * 100).toFixed(0),
     };
 
-    // GUARDAR RESULTADO EN ESTADO
     setResultado(resultadoFinal);
 
-    // OCULTAR RETRO DEL BLOQUE
+    setJustificaciones(justificacionesErrores);
+
     setMostrarRetroBloque(false);
 
     try {
       const user = JSON.parse(localStorage.getItem("user"));
 
-      console.log("Usuario:", user);
-
-      const response = await fetch(`${API_URL}/resultados/evaluacion`, {
+      await fetch(`${API_URL}/resultados/evaluacion`, {
         method: "POST",
 
         headers: {
@@ -367,31 +358,22 @@ function App() {
           bloques,
           respuestas,
           resultadoFinal,
-          tiempoTotal,
         }),
       });
 
-      const data = await response.json();
-
-      console.log("Evaluación guardada:", data);
+      setFinalizado(true);
     } catch (error) {
-      console.error("Error guardando evaluación:", error);
+      console.error(error);
     }
-
-    // MOSTRAR RESULTADO FINAL
-    setFinalizado(true);
   };
 
+  // =========================
+  // REINICIAR
+  // =========================
   const reiniciarExamen = () => {
     setIndiceActual(0);
 
     setRespuestas({});
-
-    setJustificaciones([]);
-
-    setJustificacionesBloque([]);
-
-    setFeedback("");
 
     setResultado(null);
 
@@ -403,10 +385,14 @@ function App() {
 
     setMostrarRetroBloque(false);
 
+    setJustificaciones([]);
+
     cargarPreguntas();
   };
 
+  // =========================
   // CARGANDO
+  // =========================
   if (cargando) {
     return (
       <section id="center">
@@ -419,7 +405,9 @@ function App() {
     );
   }
 
+  // =========================
   // RESULTADO FINAL
+  // =========================
   if (finalizado) {
     return (
       <section id="center">
@@ -471,15 +459,30 @@ function App() {
     );
   }
 
-  // RETRO DEL BLOQUE
+  // =========================
+  // RETRO BLOQUE
+  // =========================
   if (mostrarRetroBloque) {
-    const preguntasBloque = preguntas.length;
-
     let aciertosBloque = 0;
 
     preguntas.forEach((p) => {
       if (respuestas[p._id]?.correcta) {
         aciertosBloque++;
+      }
+    });
+
+    const erroresBloque = [];
+
+    preguntas.forEach((p) => {
+      const resp = respuestas[p._id];
+
+      if (!resp?.correcta) {
+        erroresBloque.push({
+          id: p._id,
+          subarea: p.subarea,
+          justificacion:
+            p.justificacion || p.explicacion || "Respuesta incorrecta",
+        });
       }
     });
 
@@ -491,19 +494,19 @@ function App() {
           <div className="result-box">
             <p>Aciertos: {aciertosBloque}</p>
 
-            <p>Total: {preguntasBloque}</p>
+            <p>Total: {preguntas.length}</p>
 
             <p>
               Porcentaje:{" "}
-              {((aciertosBloque / preguntasBloque) * 100).toFixed(0)}%
+              {((aciertosBloque / preguntas.length) * 100).toFixed(0)}%
             </p>
           </div>
 
-          {justificacionesBloque.length > 0 && (
+          {erroresBloque.length > 0 && (
             <div className="justifications-box">
               <h3>Errores del bloque</h3>
 
-              {justificacionesBloque.map((j) => (
+              {erroresBloque.map((j) => (
                 <div key={j.id} className="justification-item">
                   <p className="subarea">{j.subarea}</p>
 
@@ -525,7 +528,9 @@ function App() {
     );
   }
 
+  // =========================
   // ERROR
+  // =========================
   if (!preguntas.length || !preguntaActual) {
     return (
       <section id="center">
@@ -542,7 +547,9 @@ function App() {
     );
   }
 
+  // =========================
   // EXAMEN
+  // =========================
   return (
     <section id="center">
       <div className="center exam-box">
@@ -558,14 +565,11 @@ function App() {
 
         <p className="timer">Tiempo restante: {tiempo}s</p>
 
-        <div className="progress">
-          <div
-            className="progress-bar"
-            style={{
-              width: `${((indiceActual + 1) / preguntas.length) * 100}%`,
-            }}
-          ></div>
-        </div>
+        <progress
+          className="progress"
+          value={((indiceActual + 1) / preguntas.length) * 100}
+          max="100"
+        ></progress>
 
         <div className="question-card">
           <span className="badge">
@@ -599,30 +603,25 @@ function App() {
             })}
           </div>
 
-          {feedback && (
-            <div
-              className={`feedback ${feedback.includes("correcta") ? "correct" : "incorrect"
-                }`}
-            >
-              <p>{feedback}</p>
-            </div>
-          )}
           {mostrarFeedbackRespuesta && (
             <div
-              className={`respuesta-feedback ${respuestaEsCorrecta ? "correcta" : "incorrecta"
-                }`}
+              className={`respuesta-feedback ${
+                respuestaEsCorrecta ? "correcta" : "incorrecta"
+              }`}
             >
               <p>
-                {respuestaEsCorrecta ? "¡Respuesta Correcta!" : "¡Respuesta Incorrecta!"}
+                {respuestaEsCorrecta
+                  ? "¡Respuesta Correcta!"
+                  : "¡Respuesta Incorrecta!"}
               </p>
+
               <p className="respuesta-seleccionada">
                 Tu respuesta: {respuestas[preguntaActual._id]?.opcion}
               </p>
+
               {!respuestaEsCorrecta && (
                 <p className="respuesta-correcta">
-                  Respuesta correcta: {preguntaActual.opciones[
-                    Number(preguntaActual.correcta)
-                  ]}
+                  Respuesta correcta: {preguntaActual.respuestaCorrectaTexto}
                 </p>
               )}
             </div>

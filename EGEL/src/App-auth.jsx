@@ -1,198 +1,189 @@
-import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "./assets/vite.svg";
+import heroImg from "./assets/hero.png";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [userData, setUserData] = useState([])
-  const [inputValue, setInputValue] = useState('')
-  const [estado, setEstado] = useState('Verificando sesión...')
+  const [count, setCount] = useState(0);
+  const [userData, setUserData] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+  const [estado, setEstado] = useState("Verificando sesión...");
 
   // Estados de autenticación
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(localStorage.getItem('token') || '')
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
 
   // Estados de login/register
-  const [isLoginMode, setIsLoginMode] = useState(true)
-  const [loginData, setLoginData] = useState({ username: '', password: '' })
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [registerData, setRegisterData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  })
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-  const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api'
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
   // Headers con token para requests autenticados
   const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  })
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  });
 
   // Verificar token al cargar la app
   useEffect(() => {
     if (token) {
-      verifyToken()
+      verifyToken();
     } else {
-      setEstado('No has iniciado sesión')
+      setEstado("No has iniciado sesión");
     }
-  }, [])
+  }, []);
 
   const verifyToken = async () => {
     try {
       const response = await fetch(`${API_URL}/user/profile`, {
-        headers: getAuthHeaders()
-      })
+        headers: getAuthHeaders(),
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        setIsLoggedIn(true)
-        setEstado(`Conectado como ${data.user.username}`)
-        obtenerDatosUsuario()
+        const data = await response.json();
+        setUser(data.user);
+        setIsLoggedIn(true);
+        setEstado(`Conectado como ${data.user.username}`);
+        obtenerDatosUsuario();
       } else {
-        localStorage.removeItem('token')
-        setToken('')
-        setEstado('Sesión expirada')
+        localStorage.removeItem("token");
+        setToken("");
+        setEstado("Sesión expirada");
       }
     } catch (error) {
-      setEstado('Error de conexión')
+      setEstado("Error de conexión");
     }
-  }
+  };
 
   // Obtener datos del usuario actual
   const obtenerDatosUsuario = async () => {
     try {
       const response = await fetch(`${API_URL}/user/data`, {
-        headers: getAuthHeaders()
-      })
-      const data = await response.json()
-      setUserData(data)
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      setUserData(data);
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error);
     }
-  }
+  };
 
   // Agregar dato del usuario
   const agregarDatoUsuario = async () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim()) return;
 
     try {
       const response = await fetch(`${API_URL}/user/data`, {
-        method: 'POST',
+        method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ nombre: inputValue, fecha: new Date() })
-      })
-      const data = await response.json()
-      setUserData([...userData, data])
-      setInputValue('')
+        body: JSON.stringify({ nombre: inputValue, fecha: new Date() }),
+      });
+      const data = await response.json();
+      setUserData([...userData, data]);
+      setInputValue("");
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error);
     }
-  }
+  };
 
   // Login
   const handleLogin = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData)
-      })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginData),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        setToken(data.token)
-        setUser(data.user)
-        setIsLoggedIn(true)
-        localStorage.setItem('token', data.token)
-        setEstado(`Bienvenido ${data.user.username}!`)
-        obtenerDatosUsuario()
+        setToken(data.token);
+        setUser(data.user);
+        setIsLoggedIn(true);
+        localStorage.setItem("token", data.token);
+        setEstado(`Bienvenido ${data.user.username}!`);
+        obtenerDatosUsuario();
       } else {
-        alert(data.error)
+        alert(data.error);
       }
     } catch (error) {
-      alert('Error de conexión')
+      alert("Error de conexión");
     }
-  }
+  };
 
   // Register
   const handleRegister = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (registerData.password !== registerData.confirmPassword) {
-      alert('Las contraseñas no coinciden')
-      return
+      alert("Las contraseñas no coinciden");
+      return;
     }
 
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: registerData.username,
           email: registerData.email,
-          password: registerData.password
-        })
-      })
+          password: registerData.password,
+        }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        setToken(data.token)
-        setUser(data.user)
-        setIsLoggedIn(true)
-        localStorage.setItem('token', data.token)
-        setEstado(`Cuenta creada! Bienvenido ${data.user.username}`)
-        obtenerDatosUsuario()
+        setToken(data.token);
+        setUser(data.user);
+        setIsLoggedIn(true);
+        localStorage.setItem("token", data.token);
+        setEstado(`Cuenta creada! Bienvenido ${data.user.username}`);
+        obtenerDatosUsuario();
       } else {
-        alert(data.error)
+        alert(data.error);
       }
     } catch (error) {
-      alert('Error de conexión')
+      alert("Error de conexión");
     }
-  }
+  };
 
   // Logout
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    setToken('')
-    setUser(null)
-    setIsLoggedIn(false)
-    setUserData([])
-    setEstado('Sesión cerrada')
-  }
+    localStorage.removeItem("token");
+    setToken("");
+    setUser(null);
+    setIsLoggedIn(false);
+    setUserData([]);
+    setEstado("Sesión cerrada");
+  };
 
   if (!isLoggedIn) {
     return (
-      <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
+      <div className="auth-container">
         <h1>EGEL - Autenticación</h1>
 
-        <div style={{ marginBottom: '20px' }}>
+        <div className="tab-row">
           <button
             onClick={() => setIsLoginMode(true)}
-            style={{
-              padding: '10px 20px',
-              marginRight: '10px',
-              background: isLoginMode ? '#646cff' : '#f0f0f0',
-              color: isLoginMode ? 'white' : 'black'
-            }}
+            className={`tab-btn ${isLoginMode ? "active" : ""}`}
           >
             Iniciar Sesión
           </button>
           <button
             onClick={() => setIsLoginMode(false)}
-            style={{
-              padding: '10px 20px',
-              background: !isLoginMode ? '#646cff' : '#f0f0f0',
-              color: !isLoginMode ? 'white' : 'black'
-            }}
+            className={`tab-btn ${!isLoginMode ? "active" : ""}`}
           >
             Registrarse
           </button>
@@ -205,21 +196,27 @@ function App() {
               type="text"
               placeholder="Usuario"
               value={loginData.username}
-              onChange={(e) => setLoginData({...loginData, username: e.target.value})}
-              style={{ display: 'block', margin: '10px 0', padding: '8px', width: '100%' }}
+              onChange={(e) =>
+                setLoginData({ ...loginData, username: e.target.value })
+              }
+              className="input"
               required
             />
             <input
               type="password"
               placeholder="Contraseña"
               value={loginData.password}
-              onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-              style={{ display: 'block', margin: '10px 0', padding: '8px', width: '100%' }}
+              onChange={(e) =>
+                setLoginData({ ...loginData, password: e.target.value })
+              }
+              className="input"
               required
             />
-            <button type="submit" style={{ padding: '10px 20px', marginTop: '10px' }}>
-              Iniciar Sesión
-            </button>
+            <div className="actions-row">
+              <button type="submit" className="btn">
+                Iniciar Sesión
+              </button>
+            </div>
           </form>
         ) : (
           <form onSubmit={handleRegister}>
@@ -228,41 +225,54 @@ function App() {
               type="text"
               placeholder="Usuario"
               value={registerData.username}
-              onChange={(e) => setRegisterData({...registerData, username: e.target.value})}
-              style={{ display: 'block', margin: '10px 0', padding: '8px', width: '100%' }}
+              onChange={(e) =>
+                setRegisterData({ ...registerData, username: e.target.value })
+              }
+              className="input"
               required
             />
             <input
               type="email"
               placeholder="Email"
               value={registerData.email}
-              onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
-              style={{ display: 'block', margin: '10px 0', padding: '8px', width: '100%' }}
+              onChange={(e) =>
+                setRegisterData({ ...registerData, email: e.target.value })
+              }
+              className="input"
               required
             />
             <input
               type="password"
               placeholder="Contraseña"
               value={registerData.password}
-              onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
-              style={{ display: 'block', margin: '10px 0', padding: '8px', width: '100%' }}
+              onChange={(e) =>
+                setRegisterData({ ...registerData, password: e.target.value })
+              }
+              className="input"
               required
             />
             <input
               type="password"
               placeholder="Confirmar Contraseña"
               value={registerData.confirmPassword}
-              onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
-              style={{ display: 'block', margin: '10px 0', padding: '8px', width: '100%' }}
+              onChange={(e) =>
+                setRegisterData({
+                  ...registerData,
+                  confirmPassword: e.target.value,
+                })
+              }
+              className="input"
               required
             />
-            <button type="submit" style={{ padding: '10px 20px', marginTop: '10px' }}>
-              Crear Cuenta
-            </button>
+            <div className="actions-row">
+              <button type="submit" className="btn">
+                Crear Cuenta
+              </button>
+            </div>
           </form>
         )}
       </div>
-    )
+    );
   }
 
   return (
@@ -276,19 +286,11 @@ function App() {
 
         <div>
           <h1>EGEL - Multi Usuario</h1>
-          <p>Usuario: <strong>{user?.username}</strong> ({user?.role})</p>
+          <p>
+            Usuario: <strong>{user?.username}</strong> ({user?.role})
+          </p>
           <p>Estado: {estado}</p>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '5px 10px',
-              background: '#ff4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={handleLogout} className="btn btn--danger btn--sm">
             Cerrar Sesión
           </button>
         </div>
@@ -303,25 +305,25 @@ function App() {
         </button>
 
         {/* Agregar dato del usuario */}
-        <div style={{ marginTop: '20px' }}>
+        <div className="actions-row">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && agregarDatoUsuario()}
+            onKeyPress={(e) => e.key === "Enter" && agregarDatoUsuario()}
             placeholder="Escribe un nombre..."
-            style={{ padding: '8px', marginRight: '10px' }}
+            className="input"
           />
-          <button onClick={agregarDatoUsuario} style={{ padding: '8px 15px' }}>
+          <button onClick={agregarDatoUsuario} className="btn btn--sm">
             Agregar
           </button>
-          <button onClick={obtenerDatosUsuario} style={{ padding: '8px 15px', marginLeft: '10px' }}>
+          <button onClick={obtenerDatosUsuario} className="btn btn--sm">
             Obtener mis datos
           </button>
         </div>
 
         {/* Mostrar datos del usuario */}
-        <div style={{ marginTop: '20px', textAlign: 'left' }}>
+        <div className="section section--left">
           <h3>Mis datos en MongoDB:</h3>
           {userData.length === 0 ? (
             <p>No tienes datos guardados</p>
@@ -329,7 +331,8 @@ function App() {
             <ul>
               {userData.map((item, index) => (
                 <li key={item._id || index}>
-                  {item.nombre} - {new Date(item.fecha || item.createdAt).toLocaleString()}
+                  {item.nombre} -{" "}
+                  {new Date(item.fecha || item.createdAt).toLocaleString()}
                 </li>
               ))}
             </ul>
@@ -337,7 +340,7 @@ function App() {
         </div>
       </section>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

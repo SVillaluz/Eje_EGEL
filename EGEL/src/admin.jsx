@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import "./app.css";
+import "./admin.css";
 
 function AdminPanel({ onBack }) {
   const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
@@ -91,7 +91,6 @@ function AdminPanel({ onBack }) {
               <th>Aciertos</th>
               <th>Total</th>
               <th>Porcentaje</th>
-              <th>Tiempo</th>
               <th>Fecha</th>
             </tr>
           </thead>
@@ -105,7 +104,6 @@ function AdminPanel({ onBack }) {
                 <td>{e.resultadoFinal?.aciertos ?? 0}</td>
                 <td>{e.resultadoFinal?.total ?? 0}</td>
                 <td>{e.resultadoFinal?.porcentaje ?? 0}%</td>
-                <td>{e.tiempoTotal ?? "-"}s</td>
                 <td>{new Date(e.fecha).toLocaleString()}</td>
               </tr>
             ))}

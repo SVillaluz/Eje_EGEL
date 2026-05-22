@@ -3,6 +3,7 @@
 ## 📋 Estructura de Datos del Resultado
 
 ### Objeto `resultado` (después de finalizar examen)
+
 ```javascript
 {
   total: 40,           // 4 bloques × 10 preguntas
@@ -12,22 +13,26 @@
 ```
 
 ### Array `justificaciones` (respuestas incorrectas)
+
 ```javascript
 [
   {
     id: "507f1f77bcf86cd799439011",
     subarea: "Protocolos de Red",
-    justificacion: "TCP es un protocolo orientado a conexión que garantiza la entrega de datos. UDP es sin conexión y no garantiza entrega pero es más rápido."
+    justificacion:
+      "TCP es un protocolo orientado a conexión que garantiza la entrega de datos. UDP es sin conexión y no garantiza entrega pero es más rápido.",
   },
   {
     id: "507f1f77bcf86cd799439012",
     subarea: "Seguridad en Redes",
-    justificacion: "Una VPN (Red Privada Virtual) encripta la conexión permitiendo navegación privada en redes públicas."
-  }
-]
+    justificacion:
+      "Una VPN (Red Privada Virtual) encripta la conexión permitiendo navegación privada en redes públicas.",
+  },
+];
 ```
 
 ### Array `bloques` (estructura del examen)
+
 ```javascript
 [
   {
@@ -37,19 +42,25 @@
       {
         _id: "507f191e810c19729de860ea",
         pregunta: "¿Cuál es la función principal del protocolo TCP?",
-        opciones: ["Enrutamiento", "Control de flujo de datos", "DNS", "Encriptación"],
+        opciones: [
+          "Enrutamiento",
+          "Control de flujo de datos",
+          "DNS",
+          "Encriptación",
+        ],
         correcta: 1,
         subarea: "Protocolos",
-        nivel: "Básico"
+        nivel: "Básico",
       },
       // ... 9 preguntas más
-    ]
+    ],
   },
   // ... más bloques
-]
+];
 ```
 
 ### Objeto `respuestas` (todas las respuestas del usuario)
+
 ```javascript
 {
   "507f191e810c19729de860ea": {
@@ -71,6 +82,7 @@
 ## 🎯 Ejemplo de Resultado Final (90%)
 
 ### Vista del Estudiante
+
 ```
 ╔════════════════════════════════════════════════════════════════╗
 ║     Resultados de tu Evaluación - Desempeño General           ║
@@ -131,6 +143,7 @@
 ```
 
 ### Si se expande el Módulo 1 (Viendo errores)
+
 ```
 Módulo 1: Fundamentos - 95%
 19/20 respuestas correctas
@@ -155,6 +168,7 @@ Módulo 1: Fundamentos - 95%
 ## 👨‍💼 Ejemplo de Panel de Administrador
 
 ### Dashboard
+
 ```
 ╔═══════════════════════════════════════════════════════════════════╗
 ║ Admin Panel                                                       ║
@@ -181,6 +195,7 @@ Módulo 1: Fundamentos - 95%
 ```
 
 ### Evaluaciones (con búsqueda)
+
 ```
 ╔═══════════════════════════════════════════════════════════════════╗
 ║ Evaluaciones                                                      ║
@@ -206,6 +221,7 @@ Módulo 1: Fundamentos - 95%
 ```
 
 ### Reportes
+
 ```
 ╔═══════════════════════════════════════════════════════════════════╗
 ║ Reportes                                                          ║
@@ -293,6 +309,7 @@ PARALELO (Admin):
 ## 📱 Ejemplo de Responsive (Mobile)
 
 ### Results en Mobile
+
 ```
 ┌────────────────────┐
 │ Resultados...      │
@@ -335,12 +352,13 @@ El backend debe continuar proporcionando:
    - Retorna bloques con preguntas
 
 2. **POST `/resultados/evaluacion`**
-   - Guarda: userId, bloques, respuestas, resultadoFinal, tiempoTotal
+   - Guarda: userId, bloques, respuestas, resultadoFinal
 
 3. **GET `/admin/evaluaciones`** (requiere token + rol admin)
    - Retorna array de evaluaciones
 
 Estructura esperada en evaluaciones:
+
 ```javascript
 {
   _id: ObjectId,
@@ -352,7 +370,6 @@ Estructura esperada en evaluaciones:
     aciertos: Number,
     porcentaje: Number
   },
-  tiempoTotal: Number,
   fecha: Date
 }
 ```

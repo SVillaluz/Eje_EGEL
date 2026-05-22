@@ -10,34 +10,70 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ==========================
 // MIDDLEWARE
-// Configurar CORS según FRONTEND_ORIGIN (puede ser una lista separada por comas)
+// ==========================
+
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
+
 if (FRONTEND_ORIGIN) {
   const allowed = FRONTEND_ORIGIN.split(",").map((s) => s.trim());
+
   app.use(
     cors({
       origin: (origin, callback) => {
-        // permitir requests sin origin (herramientas, mobile apps)
         if (!origin) return callback(null, true);
-        if (allowed.indexOf("*") !== -1 || allowed.indexOf(origin) !== -1) {
+
+        if (allowed.includes("*") || allowed.includes(origin)) {
           return callback(null, true);
         }
+
         return callback(new Error("CORS policy: origin not allowed"));
       },
     }),
   );
 } else {
   console.warn(
-    "⚠️ FRONTEND_ORIGIN no definido — CORS permitiendo todos los orígenes. Establece FRONTEND_ORIGIN en producción.",
+    "⚠️ FRONTEND_ORIGIN no definido — CORS permitiendo todos los orígenes.",
   );
+
   app.use(cors());
 }
+
 app.use(express.json());
 
-// CONFIGURACIÓN
+// ==========================
+// CONFIG
+// ==========================
+
 const MONGODB_URI = process.env.MONGODB_URI;
 const SECRET = process.env.JWT_SECRET || "secreto_egel";
+
+let db;
+
+// ==========================
+// CONEXIÓN MONGO
+// ==========================
+
+async function connectDB() {
+  try {
+    const client = new MongoClient(MONGODB_URI);
+
+    await client.connect();
+
+    db = client.db("egel_db");
+
+    console.log("✅ MongoDB conectado");
+  } catch (error) {
+    console.error("❌ Error MongoDB:", error.message);
+
+    process.exit(1);
+  }
+}
+
+// ==========================
+// MIDDLEWARE ADMIN
+// ==========================
 
 const verificarAdmin = async (req, res, next) => {
   try {
@@ -71,24 +107,10 @@ const verificarAdmin = async (req, res, next) => {
   }
 };
 
-let db;
-
-// CONEXIÓN A MONGO
-async function connectDB() {
-  try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    db = client.db("egel_db");
-
-    console.log("✅ MongoDB conectado");
-  } catch (error) {
-    console.error("❌ Error MongoDB:", error.message);
-    process.exit(1);
-  }
-}
-
+// ==========================
 // HEALTH CHECK
+// ==========================
+
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
@@ -96,12 +118,14 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// REGISTRO
+// ==========================
+// REGISTER
+// ==========================
+
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // VALIDACIONES
     if (!username || !email || !password) {
       return res.status(400).json({
         error: "Todos los campos son obligatorios",
@@ -114,7 +138,6 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    // REVISAR SI YA EXISTE EMAIL
     const existeEmail = await db.collection("users").findOne({
       email: email.toLowerCase(),
     });
@@ -125,7 +148,6 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    // REVISAR SI YA EXISTE USERNAME
     const existeUsername = await db.collection("users").findOne({
       username,
     });
@@ -136,10 +158,8 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    // HASH PASSWORD
     const hash = await bcrypt.hash(password, 10);
 
-    // CREAR USUARIO
     const nuevoUsuario = {
       username,
       email: email.toLowerCase(),
@@ -150,7 +170,6 @@ app.post("/api/register", async (req, res) => {
 
     const result = await db.collection("users").insertOne(nuevoUsuario);
 
-    // RESPUESTA
     res.json({
       message: "Usuario registrado correctamente",
       user: {
@@ -166,19 +185,20 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+// ==========================
 // LOGIN
+// ==========================
+
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // VALIDAR CAMPOS
     if (!email || !password) {
       return res.status(400).json({
         error: "Completa todos los campos",
       });
     }
 
-    // BUSCAR USUARIO
     const user = await db.collection("users").findOne({
       email: email.toLowerCase(),
     });
@@ -189,7 +209,6 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // VALIDAR PASSWORD
     const passwordCorrecta = await bcrypt.compare(password, user.password);
 
     if (!passwordCorrecta) {
@@ -198,7 +217,6 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // TOKEN
     const token = jwt.sign(
       {
         id: user._id,
@@ -210,7 +228,6 @@ app.post("/api/login", async (req, res) => {
       },
     );
 
-    // RESPUESTA
     res.json({
       message: "Login correcto",
       token,
@@ -228,24 +245,30 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// OBTENER PREGUNTAS POR BLOQUES
+// ==========================
+// OBTENER PREGUNTAS RANDOM
+// 6 BLOQUES DE 10 = 60
+// ==========================
+
 app.get("/api/preguntas/random", async (req, res) => {
   try {
     const BLOQUES = 6;
     const PREGUNTAS_POR_BLOQUE = 10;
+    const TOTAL_PREGUNTAS = BLOQUES * PREGUNTAS_POR_BLOQUE;
 
+    // Obtener preguntas totalmente aleatorias
     const preguntas = await db
       .collection("preguntas")
       .aggregate([
         {
           $sample: {
-            size: BLOQUES * PREGUNTAS_POR_BLOQUE,
+            size: TOTAL_PREGUNTAS,
           },
         },
       ])
       .toArray();
 
-    // Crear bloques de 10
+    // Crear bloques
     const bloques = [];
 
     for (let i = 0; i < BLOQUES; i++) {
@@ -262,19 +285,30 @@ app.get("/api/preguntas/random", async (req, res) => {
       bloques,
     });
   } catch (error) {
+    console.error("ERROR RANDOM:", error);
+
     res.status(500).json({
       error: error.message,
     });
   }
 });
 
+// ==========================
+// PREGUNTAS POR SUBAREA
+// ==========================
+
 app.get("/api/preguntas/by-subarea/:subarea", async (req, res) => {
   try {
     const { subarea } = req.params;
+
     const size = Math.min(Math.max(parseInt(req.query.size, 10) || 5, 1), 20);
+
     const excludeIds = (req.query.excludeIds || "").split(",").filter(Boolean);
 
-    const match = { subarea };
+    const match = {
+      subarea,
+    };
+
     if (excludeIds.length > 0) {
       match._id = {
         $nin: excludeIds
@@ -311,7 +345,10 @@ app.get("/api/preguntas/by-subarea/:subarea", async (req, res) => {
   }
 });
 
-// GUARDAR RESPUESTAS DEL EXAMEN
+// ==========================
+// GUARDAR RESPUESTAS
+// ==========================
+
 app.post("/api/respuestas", async (req, res) => {
   try {
     const { userId, respuestas, puntaje } = req.body;
@@ -341,7 +378,10 @@ app.post("/api/respuestas", async (req, res) => {
   }
 });
 
-// VER RESULTADOS DE UN USUARIO
+// ==========================
+// VER RESULTADOS USUARIO
+// ==========================
+
 app.get("/api/resultados/:userId", verificarAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -351,7 +391,9 @@ app.get("/api/resultados/:userId", verificarAdmin, async (req, res) => {
       .find({
         userId: new ObjectId(userId),
       })
-      .sort({ fecha: -1 })
+      .sort({
+        fecha: -1,
+      })
       .toArray();
 
     res.json(resultados);
@@ -362,10 +404,13 @@ app.get("/api/resultados/:userId", verificarAdmin, async (req, res) => {
   }
 });
 
+// ==========================
+// GUARDAR EVALUACIÓN
+// ==========================
+
 app.post("/api/resultados/evaluacion", async (req, res) => {
   try {
-    const { userId, bloques, respuestas, resultadoFinal, tiempoTotal } =
-      req.body;
+    const { userId, bloques, respuestas, resultadoFinal } = req.body;
 
     console.log("BODY RECIBIDO:", req.body);
 
@@ -403,26 +448,20 @@ app.post("/api/resultados/evaluacion", async (req, res) => {
         aciertos,
         total: bloque.preguntas.length,
         porcentaje: ((aciertos / bloque.preguntas.length) * 100).toFixed(0),
-
         preguntas,
       };
     });
 
     const evaluacion = {
       userId: new ObjectId(userId),
-
       fecha: new Date(),
-
-      tiempoTotal,
-
       resultadoFinal,
-
       bloques: bloquesResultado,
     };
 
     const result = await db.collection("evaluaciones").insertOne(evaluacion);
 
-    console.log("Guardado:", result);
+    console.log("Evaluación guardada:", result);
 
     res.json({
       ok: true,
@@ -436,6 +475,10 @@ app.post("/api/resultados/evaluacion", async (req, res) => {
     });
   }
 });
+
+// ==========================
+// ADMIN EVALUACIONES
+// ==========================
 
 app.get("/api/admin/evaluaciones", verificarAdmin, async (req, res) => {
   try {
@@ -461,7 +504,6 @@ app.get("/api/admin/evaluaciones", verificarAdmin, async (req, res) => {
             fecha: 1,
             resultadoFinal: 1,
             bloques: 1,
-            tiempoTotal: 1,
             username: "$usuario.username",
             email: "$usuario.email",
           },
@@ -483,7 +525,10 @@ app.get("/api/admin/evaluaciones", verificarAdmin, async (req, res) => {
   }
 });
 
+// ==========================
 // INICIAR SERVIDOR
+// ==========================
+
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Backend corriendo en puerto ${PORT}`);
