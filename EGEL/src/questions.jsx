@@ -4,6 +4,105 @@ import "./questions.css";
 function App() {
   const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
+  // FUNCIONES UTILITARIAS PARA ONTOLOGÍA Y ALEATORIZACIÓN
+
+  /**
+   * Aleatoriza las opciones de una pregunta manteniendo referencia a la respuesta correcta
+   */
+  const aleatorrizarOpciones = (pregunta) => {
+    const opciones = [...pregunta.opciones];
+    
+    // Encontrar el índice de la respuesta correcta
+    let correctaIndex = Number.isNaN(Number(pregunta.correcta))
+      ? opciones.findIndex((item) => item === pregunta.correcta)
+      : Number(pregunta.correcta);
+
+    // Crear array de índices y barajarlo
+    const indices = Array.from({ length: opciones.length }, (_, i) => i);
+    
+    // Fisher-Yates shuffle
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+
+    // Crear nuevas opciones en orden aleatorio
+    const opcionesAleatorias = indices.map((i) => opciones[i]);
+    
+    // Encontrar la nueva posición de la respuesta correcta
+    const nuevaCorrectaIndex = indices.indexOf(correctaIndex);
+
+    return {
+      ...pregunta,
+      opciones: opcionesAleatorias,
+      correcta: nuevaCorrectaIndex,
+    };
+  };
+
+  /**
+   * Ordena las preguntas basado en ontología educativa
+   * Criterios: dificultad, nivel cognitivo, y distribución de temas
+   */
+  const ordenarPreguntasOntologia = (preguntas) => {
+    // Mapeo de niveles a prioridad (menor = primero)
+    const nivelPrioridad = {
+      "Básico": 1,
+      "Intermedio": 2,
+      "Avanzado": 3,
+      "Experto": 4,
+    };
+
+    // Crear copia y asignar nivel por defecto si no existe
+    const preguntasConNivel = preguntas.map((p) => ({
+      ...p,
+      nivelOrden: nivelPrioridad[p.nivel] || 2,
+    }));
+
+    // Agrupar por subareas
+    const porSubarea = {};
+    preguntasConNivel.forEach((p) => {
+      if (!porSubarea[p.subarea]) {
+        porSubarea[p.subarea] = [];
+      }
+      porSubarea[p.subarea].push(p);
+    });
+
+    // Ordenar cada subaarea por nivel de dificultad
+    Object.keys(porSubarea).forEach((subarea) => {
+      porSubarea[subarea].sort((a, b) => a.nivelOrden - b.nivelOrden);
+    });
+
+    // Intercalar las subareas para distribuir temas
+    const resultado = [];
+    const subareas = Object.keys(porSubarea);
+    let maxPreguntas = Math.max(...subareas.map((s) => porSubarea[s].length));
+
+    for (let i = 0; i < maxPreguntas; i++) {
+      for (const subarea of subareas) {
+        if (porSubarea[subarea][i]) {
+          resultado.push(porSubarea[subarea][i]);
+        }
+      }
+    }
+
+    return resultado;
+  };
+
+  /**
+   * Procesa un bloque: ordena preguntas y aleatoriza opciones
+   */
+  const procesarBloque = (bloque) => {
+    const preguntasOrdenadas = ordenarPreguntasOntologia(bloque.preguntas);
+    const preguntasConOpcionesAleatorias = preguntasOrdenadas.map(
+      (pregunta) => aleatorrizarOpciones(pregunta)
+    );
+
+    return {
+      ...bloque,
+      preguntas: preguntasConOpcionesAleatorias,
+    };
+  };
+
   const [bloques, setBloques] = useState([]);
   const [bloqueActual, setBloqueActual] = useState(0);
 
@@ -55,9 +154,14 @@ function App() {
       console.log("Preguntas recibidas:", data);
 
       if (Array.isArray(data.bloques)) {
-        setBloques(data.bloques);
+        // Procesar cada bloque: ordenar preguntas y aleatorizar opciones
+        const bloquesProcesados = data.bloques.map((bloque) =>
+          procesarBloque(bloque)
+        );
 
-        setPreguntas(data.bloques[0].preguntas);
+        setBloques(bloquesProcesados);
+
+        setPreguntas(bloquesProcesados[0].preguntas);
 
         setBloqueActual(0);
       } else {
@@ -111,11 +215,7 @@ function App() {
   }, [tiempo, finalizado, cargando, indiceActual, mostrarRetroBloque]);
 
   const responder = (opcion, index) => {
-    const correctaIndex = Number.isNaN(Number(preguntaActual.correcta))
-      ? preguntaActual.opciones.findIndex(
-        (item) => item === preguntaActual.correcta,
-      )
-      : Number(preguntaActual.correcta);
+    const correctaIndex = Number(preguntaActual.correcta);
 
     const esCorrecta = index === correctaIndex;
 
@@ -521,11 +621,7 @@ function App() {
               {!respuestaEsCorrecta && (
                 <p className="respuesta-correcta">
                   Respuesta correcta: {preguntaActual.opciones[
-                    Number.isNaN(Number(preguntaActual.correcta))
-                      ? preguntaActual.opciones.findIndex(
-                        (item) => item === preguntaActual.correcta,
-                      )
-                      : Number(preguntaActual.correcta)
+                    Number(preguntaActual.correcta)
                   ]}
                 </p>
               )}
