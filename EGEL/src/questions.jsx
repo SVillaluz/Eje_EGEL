@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "./questions.css";
 
 function App() {
@@ -133,6 +133,8 @@ function App() {
 
   const [justificaciones, setJustificaciones] = useState([]);
 
+  const questionTextRef = useRef(null);
+
   // =========================
   // CARGAR PREGUNTAS
   // =========================
@@ -171,6 +173,33 @@ function App() {
       setCargando(false);
     }
   };
+
+  // =========================
+  // BLOQUEAR COPIADO EN LA PREGUNTA
+  // =========================
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      try {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+          const sel = window.getSelection();
+
+          if (sel && sel.rangeCount > 0) {
+            const anchor = sel.anchorNode;
+
+            if (questionTextRef.current && questionTextRef.current.contains(anchor)) {
+              e.preventDefault();
+            }
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const preguntaActual = preguntas[indiceActual];
 
@@ -576,7 +605,14 @@ function App() {
             {preguntaActual.subarea} - {preguntaActual.nivel}
           </span>
 
-          <h3>{preguntaActual.pregunta}</h3>
+          <h3
+            ref={questionTextRef}
+            onCopy={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
+          >
+            {preguntaActual.pregunta}
+          </h3>
 
           {errorValidacion && (
             <div className="validation-error">

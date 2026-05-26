@@ -1,6 +1,9 @@
-/* =========================
-questions.css
-========================= */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
 .exam-box h1 {
   text-align: center;
