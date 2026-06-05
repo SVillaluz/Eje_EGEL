@@ -438,6 +438,8 @@ app.post("/api/resultados/evaluacion", async (req, res) => {
 
         return {
           preguntaId: p._id,
+          subarea: p.subarea,
+          nivel: p.nivel,
           correcta: respuesta?.correcta || false,
           respuestaUsuario: respuesta?.index ?? null,
         };
@@ -518,6 +520,135 @@ app.get("/api/admin/evaluaciones", verificarAdmin, async (req, res) => {
       .toArray();
 
     res.json(evaluaciones);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+});
+
+// ==========================
+// ADMIN RANKING
+// ==========================
+
+app.get("/api/admin/ranking", verificarAdmin, async (req, res) => {
+  try {
+    const PASS_THRESHOLD = 60;
+
+    const users = await db
+      .collection("evaluaciones")
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "usuario",
+          },
+        },
+        {
+          $unwind: "$usuario",
+        },
+        {
+          $group: {
+            _id: "$userId",
+            username: { $first: "$usuario.username" },
+            email: { $first: "$usuario.email" },
+            totalExamenes: { $sum: 1 },
+            aprobados: {
+              $sum: {
+                $cond: [
+                  { $gte: ["$resultadoFinal.porcentaje", PASS_THRESHOLD] },
+                  1,
+                  0,
+                ],
+              },
+            },
+            reprobados: {
+              $sum: {
+                $cond: [
+                  { $lt: ["$resultadoFinal.porcentaje", PASS_THRESHOLD] },
+                  1,
+                  0,
+                ],
+              },
+            },
+            promedioPorcentaje: { $avg: "$resultadoFinal.porcentaje" },
+            ultimoExamen: { $max: "$fecha" },
+          },
+        },
+        {
+          $sort: {
+            totalExamenes: -1,
+            aprobados: -1,
+            promedioPorcentaje: -1,
+          },
+        },
+      ])
+      .toArray();
+
+    const temas = await db
+      .collection("evaluaciones")
+      .aggregate([
+        { $unwind: "$bloques" },
+        { $unwind: "$bloques.preguntas" },
+        {
+          $group: {
+            _id: {
+              userId: "$userId",
+              subarea: "$bloques.preguntas.subarea",
+            },
+            total: { $sum: 1 },
+            correctas: {
+              $sum: {
+                $cond: ["$bloques.preguntas.correcta", 1, 0],
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            userId: "$_id.userId",
+            subarea: "$_id.subarea",
+            total: 1,
+            correctas: 1,
+            porcentaje: {
+              $round: [
+                {
+                  $multiply: [
+                    { $divide: ["$correctas", "$total"] },
+                    100,
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    const ranking = users.map((user) => {
+      const temasUsuario = temas
+        .filter((tema) => tema.userId.toString() === user._id.toString())
+        .sort((a, b) => b.porcentaje - a.porcentaje);
+
+      return {
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        totalExamenes: user.totalExamenes,
+        aprobados: user.aprobados,
+        reprobados: user.reprobados,
+        promedioPorcentaje: Number(user.promedioPorcentaje.toFixed(0)),
+        ultimoExamen: user.ultimoExamen,
+        temasDominados: temasUsuario.filter((tema) => tema.porcentaje >= 70),
+        temasPorMejorar: temasUsuario.filter((tema) => tema.porcentaje < 70),
+      };
+    });
+
+    res.json(ranking);
   } catch (error) {
     res.status(500).json({
       error: error.message,

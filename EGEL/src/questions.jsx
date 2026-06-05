@@ -310,6 +310,24 @@ function App() {
     setMostrarRetroBloque(true);
   };
 
+  const guardarProgreso = () => {
+    try {
+      const progreso = JSON.parse(localStorage.getItem("progreso")) || {};
+      
+      progreso[`bloque_${bloqueActual}`] = {
+        respuestas,
+        indiceActual,
+        tiempo,
+      };
+      
+      localStorage.setItem("progreso", JSON.stringify(progreso));
+      alert("Progreso guardado");
+    } catch (error) {
+      console.error("Error al guardar progreso:", error);
+      alert("Error al guardar progreso");
+    }
+  };
+
   // =========================
   // SIGUIENTE BLOQUE
   // =========================
@@ -641,30 +659,22 @@ function App() {
 
           {mostrarFeedbackRespuesta && (
             <div
-              className={`respuesta-feedback ${
-                respuestaEsCorrecta ? "correcta" : "incorrecta"
-              }`}
+              className={`respuesta-feedback ${respuestaEsCorrecta ? "correcta" : "incorrecta"
+                }`}
             >
               <p>
                 {respuestaEsCorrecta
                   ? "¡Respuesta Correcta!"
                   : "¡Respuesta Incorrecta!"}
               </p>
-
-              <p className="respuesta-seleccionada">
-                Tu respuesta: {respuestas[preguntaActual._id]?.opcion}
-              </p>
-
-              {!respuestaEsCorrecta && (
-                <p className="respuesta-correcta">
-                  Respuesta correcta: {preguntaActual.respuestaCorrectaTexto}
-                </p>
-              )}
             </div>
           )}
         </div>
 
         <div className="actions">
+          <button className="btn" onClick={guardarProgreso} style={{ backgroundColor: "#7be028" }}>
+            Guardar Progreso
+          </button>
           <button className="btn" onClick={siguiente}>
             {indiceActual === preguntas.length - 1
               ? "Finalizar bloque"

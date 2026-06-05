@@ -210,6 +210,121 @@ app.get("/api/admin/users", authenticateToken, async (req, res) => {
   }
 });
 
+// Evaluaciones para el admin
+app.get("/api/admin/evaluaciones", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const evaluaciones = await db
+      .collection("evaluaciones")
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "usuario",
+          },
+        },
+        { $unwind: "$usuario" },
+        {
+          $project: {
+            _id: 1,
+            fecha: 1,
+            resultadoFinal: 1,
+            bloques: 1,
+            username: "$usuario.username",
+            email: "$usuario.email",
+          },
+        },
+        { $sort: { fecha: -1 } },
+      ])
+      .toArray();
+
+    res.json(evaluaciones);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ranking para el admin
+app.get("/api/admin/ranking", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const PASS_THRESHOLD = 60;
+
+    const users = await db
+      .collection("evaluaciones")
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "usuario",
+          },
+        },
+        { $unwind: "$usuario" },
+        {
+          $group: {
+            _id: "$userId",
+            username: { $first: "$usuario.username" },
+            email: { $first: "$usuario.email" },
+            totalExamenes: { $sum: 1 },
+            aprobados: {
+              $sum: {
+                $cond: [
+                  { $gte: ["$resultadoFinal.porcentaje", PASS_THRESHOLD] },
+                  1,
+                  0,
+                ],
+              },
+            },
+            reprobados: {
+              $sum: {
+                $cond: [
+                  { $lt: ["$resultadoFinal.porcentaje", PASS_THRESHOLD] },
+                  1,
+                  0,
+                ],
+              },
+            },
+            promedioPorcentaje: { $avg: "$resultadoFinal.porcentaje" },
+            ultimoExamen: { $max: "$fecha" },
+          },
+        },
+        {
+          $sort: {
+            totalExamenes: -1,
+            aprobados: -1,
+            promedioPorcentaje: -1,
+          },
+        },
+      ])
+      .toArray();
+
+    const ranking = users.map((user) => ({
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      totalExamenes: user.totalExamenes,
+      aprobados: user.aprobados,
+      reprobados: user.reprobados,
+      promedioPorcentaje: Number(user.promedioPorcentaje.toFixed(0)),
+      ultimoExamen: user.ultimoExamen,
+    }));
+
+    res.json(ranking);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Rutas públicas
 app.get("/api/health", (req, res) => {
   res.json({ status: "✅ Servidor funcionando" });
